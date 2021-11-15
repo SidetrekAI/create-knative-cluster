@@ -1,0 +1,19 @@
+{
+  "name": "create-knative-cluster",
+  "version": "0.1.0-alpha",
+  "main": "index.ts",
+  "dependencies": {
+    "@pulumi/aws": "^4.0.0",
+    "@pulumi/awsx": "^0.30.0",
+    "@pulumi/eks": "^0.35.0",
+    "@pulumi/kubernetes": "^3.9.0",
+    "@pulumi/kubernetes-cert-manager": "^0.0.1",
+    "@pulumi/pulumi": "^3.0.0",
+    "@types/node": "^14.17.33",
+    "commander": "^8.3.0",
+    "ts-node": "^7.0.1"
+  },
+  "bin": {
+    "create-knative-cluster": "./bin/main.py"
+  }
+}
