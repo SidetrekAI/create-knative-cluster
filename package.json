@@ -1,5 +1,5 @@
 {
-  "name": "create-knative-cluster",
+  "name": "@sidetrek/create-knative-cluster",
   "version": "0.1.0-alpha",
   "main": "index.ts",
   "dependencies": {
@@ -11,9 +11,11 @@
     "@pulumi/pulumi": "^3.0.0",
     "@types/node": "^14.17.33",
     "commander": "^8.3.0",
+    "np": "^7.5.0",
     "ts-node": "^7.0.1"
   },
+  "test": "echo \"No test specified\"",
   "bin": {
-    "create-knative-cluster": "./bin/main.py"
+    "create-knative-cluster": "./node_modules/ts-node/dist/bin.js bin/index.ts"
   }
 }

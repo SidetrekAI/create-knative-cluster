@@ -7,7 +7,7 @@ const cliProgram = new Command()
 cliProgram
   // .requiredOption('-p, --project-name <projectName>', 'Pulumi project name')
   // .requiredOption('-s, --stack-name <stackName>', 'Pulumi stack name')
-  .requiredOption('-f, --automation-script-path <automationScriptPath>', 'absolute path to Pulumi automation script file')
+  .requiredOption('-f, --automation-script-path <automationScriptPath>', 'absolute path to Pulumi automation script')
   .option('-d, --destroy <destroy>', 'destroy Pulumi stack')
   .option('-i, --input-path <inputPath>', 'absolute path to JSON inputs file from another stack run')
 
