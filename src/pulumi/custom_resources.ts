@@ -3,8 +3,6 @@ import * as aws from '@pulumi/aws'
 import * as k8s from '@pulumi/kubernetes'
 import * as certmanager from '@pulumi/kubernetes-cert-manager'
 
-const config = new pulumi.Config()
-
 import {
   getClusterAutoscalerPolicy,
   getRoute53AddRecordsPolicy,
@@ -25,7 +23,7 @@ interface ClusterAutoscalerArgs {
 }
 
 export class ClusterAutoscaler extends pulumi.ComponentResource {
-  constructor(name, args: ClusterAutoscalerArgs, opts) {
+  constructor(name: string, args: ClusterAutoscalerArgs, opts: any) {
     super('custom:k8s:ClusterAutoscaler', name, {}, opts)
 
     const {
@@ -43,7 +41,7 @@ export class ClusterAutoscaler extends pulumi.ComponentResource {
     // IAM role for Cluster Autoscaler
     const clusterAutoscalerRoleName = 'AmazonEKSClusterAutoscalerRole'
     const clusterAutoscalerRole = new aws.iam.Role(clusterAutoscalerRoleName, {
-      name: clusterAutoscalerRoleName,
+      namePrefix: clusterAutoscalerRoleName,
       assumeRolePolicy: getClusterAutoscalerRoleTrustPolicy({
         awsRegion,
         awsAccountId,
@@ -54,7 +52,7 @@ export class ClusterAutoscaler extends pulumi.ComponentResource {
     })
     const clusterAutoscalerPolicyName = 'AmazonEKSClusterAutoscalerPolicy'
     const clusterAutoscalerPolicy = new aws.iam.Policy(clusterAutoscalerPolicyName, {
-      name: clusterAutoscalerPolicyName,
+      namePrefix: clusterAutoscalerPolicyName,
       description: 'Cluster Autoscaler policy',
       policy: getClusterAutoscalerPolicy(),
     })
@@ -96,7 +94,7 @@ export class RdsPostgres extends pulumi.ComponentResource {
   name: pulumi.Output<string>
   endpoint: pulumi.Output<string>
 
-  constructor(name, args: RdsPostgresArgs, opts) {
+  constructor(name: string, args: RdsPostgresArgs, opts: any) {
     super('custom:aws:RdsPostgres', name, {}, opts)
 
     const {
@@ -140,7 +138,7 @@ interface KnativeOperatorArgs {
 }
 
 export class KnativeOperator extends pulumi.ComponentResource {
-  constructor(name, args: KnativeOperatorArgs, opts) {
+  constructor(name: string, args: KnativeOperatorArgs, opts: any) {
     super('custom:k8s:KnativeOperator', name, {}, opts)
 
     const { version } = args
@@ -163,7 +161,7 @@ interface KnativeServingArgs {
 export class KnativeServing extends pulumi.ComponentResource {
   id: pulumi.Output<String>
 
-  constructor(name, args: KnativeServingArgs, opts) {
+  constructor(name: string, args: KnativeServingArgs, opts: any) {
     super('custom:k8s:KnativeServing', name, {}, opts)
 
     const {
@@ -228,7 +226,7 @@ export class KnativeServing extends pulumi.ComponentResource {
 export class KnativeEventing extends pulumi.ComponentResource {
   id: pulumi.Output<String>
 
-  constructor(name, args, opts) {
+  constructor(name: string, args: any, opts: any) {
     super('custom:k8s:KnativeEventing', name, {}, opts)
 
     const knativeEventingNamespaceName = 'knative-eventing'
@@ -257,7 +255,7 @@ export class KnativeEventing extends pulumi.ComponentResource {
 // export class IstioOperator extends pulumi.ComponentResource {
 //   id: pulumi.Output<String>
 
-//   constructor(name, args, opts) {
+//   constructor(name: string, args, opts: any) {
 //     super('custom:k8s:IstioOperator', name, {}, opts)
 
 //     // Install Istio Operator using Helm
@@ -290,7 +288,7 @@ export class Istio extends pulumi.ComponentResource {
   id: pulumi.Output<String>
   name: pulumi.Output<String>
 
-  constructor(name, args, opts) {
+  constructor(name: string, args: any, opts: any) {
     super('custom:k8s:Istio', name, {}, opts)
 
     const istio = new k8s.apiextensions.CustomResource(name, {
@@ -348,7 +346,7 @@ export class KnativeHttpsIngressGateway extends pulumi.ComponentResource {
   id: pulumi.Output<String>
   name: String
 
-  constructor(name, args: KnativeHttpsIngressGatewayArgs, opts) {
+  constructor(name: string, args: KnativeHttpsIngressGatewayArgs, opts: any) {
     super('custom:k8s:KnativeHttpsIngressGateway', name, {}, opts)
 
     const {
@@ -427,7 +425,7 @@ interface KnativeVirtualServiceRoute {
 export class KnativeVirtualService extends pulumi.ComponentResource {
   virtualService: k8s.apiextensions.CustomResource
 
-  constructor(name, args: KnativeVirtualServiceArgs, opts) {
+  constructor(name: string, args: KnativeVirtualServiceArgs, opts: any) {
     super('custom:k8s:KnativeVirtualService', name, {}, opts)
 
     const {
@@ -489,10 +487,11 @@ interface CertManagerArgs {
   hostedZoneId: string,
   customDomain: string,
   eksHash: string,
+  acmeEmail: string,
 }
 
 export class CertManager extends pulumi.ComponentResource {
-  constructor(name, args: CertManagerArgs, opts) {
+  constructor(name: string, args: CertManagerArgs, opts: any) {
     super('custom:k8s:CertManager', name, {}, opts)
 
     const {
@@ -501,6 +500,7 @@ export class CertManager extends pulumi.ComponentResource {
       hostedZoneId,
       customDomain,
       eksHash,
+      acmeEmail,
     } = args
 
     const certManagerName = 'cert-manager'
@@ -567,7 +567,6 @@ export class CertManager extends pulumi.ComponentResource {
     /**
      * Set up ClusterIssuer (cluster level tls issuer)
      */
-    const acmeEmail = config.require('acme_email')
     const clusterIssuer = new k8s.apiextensions.CustomResource(`${name}-cluster-issuer`, {
       apiVersion: 'cert-manager.io/v1',
       kind: 'ClusterIssuer',
@@ -623,7 +622,7 @@ interface WildcardCertificateArgs {
 export class WildcardCertificate extends pulumi.ComponentResource {
   secretName: string
 
-  constructor(name, args: WildcardCertificateArgs, opts) {
+  constructor(name: string, args: WildcardCertificateArgs, opts: any) {
     super('custom:k8s:WildcardCertificate', name, {}, opts)
 
     const {
@@ -678,7 +677,7 @@ interface RdsPostgresArgs {
 }
 
 export class KubePrometheusStack extends pulumi.ComponentResource {
-  constructor(name, args: KubePrometheusStackArgs, opts) {
+  constructor(name: string, args: KubePrometheusStackArgs, opts: any) {
     super('custom:k8s:KubePrometheusStack', name, {}, opts)
 
     const {
@@ -750,7 +749,7 @@ export class KubePrometheusStack extends pulumi.ComponentResource {
 }
 
 export class KnativeServiceMonitors extends pulumi.ComponentResource {
-  constructor(name, args, opts) {
+  constructor(name: string, args: any, opts: any) {
     super('custom:k8s:KnativeServiceMonitors', name, {}, opts)
 
     // Apply the ServiceMonitors/PodMonitors to collect metrics from Knative
@@ -764,7 +763,7 @@ export class KnativeServiceMonitors extends pulumi.ComponentResource {
 }
 
 export class KnativeGrafanaDashboards extends pulumi.ComponentResource {
-  constructor(name, args, opts) {
+  constructor(name: string, args: any, opts: any) {
     super('custom:k8s:KnativeGrafanaDashboards', name, {}, opts)
 
     // Import Grafana dashboards 

@@ -27,6 +27,12 @@ export const getCertManagerRoleTrustPolicy = ({
   eksHash,
   namespace,
   serviceAccountName,
+}: {
+  awsRegion: string,
+  awsAccountId: string,
+  eksHash: string,
+  namespace: string,
+  serviceAccountName: string,
 }) => {
   const policyStringified = pulumi.interpolate`{
     "Version": "2012-10-17",
@@ -76,6 +82,12 @@ export const getClusterAutoscalerRoleTrustPolicy = ({
   eksHash,
   namespace,
   serviceAccountName,
+}: {
+  awsRegion: string,
+  awsAccountId: string,
+  eksHash: string,
+  namespace: string,
+  serviceAccountName: string,
 }) => {
   const policyStringified = pulumi.interpolate`{
     "Version": "2012-10-17",

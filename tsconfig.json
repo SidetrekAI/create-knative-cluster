@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "strict": true,
+        "rootDir": "src",
         "outDir": "bin",
         "target": "es2016",
         "module": "commonjs",
@@ -11,8 +12,5 @@
         "noFallthroughCasesInSwitch": true,
         "noImplicitReturns": true,
         "forceConsistentCasingInFileNames": true
-    },
-    "files": [
-        "index.ts"
-    ]
+    }
 }

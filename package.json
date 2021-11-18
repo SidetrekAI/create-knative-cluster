@@ -1,7 +1,16 @@
 {
   "name": "@sidetrek/create-knative-cluster",
   "version": "0.1.0-alpha",
-  "main": "index.ts",
+  "main": "bin/index.js",
+  "bin": {
+    "create-knative-cluster": "bin/index.js",
+    "ckc": "bin/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts -- init -- --aws-region us-west-1 --custom-domain sidetrek.com --use-direnv true"
+  },
+  "test": "echo \"No test specified\"",
   "dependencies": {
     "@pulumi/aws": "^4.0.0",
     "@pulumi/awsx": "^0.30.0",
@@ -9,13 +18,15 @@
     "@pulumi/kubernetes": "^3.9.0",
     "@pulumi/kubernetes-cert-manager": "^0.0.1",
     "@pulumi/pulumi": "^3.0.0",
-    "@types/node": "^14.17.33",
+    "chalk": "^4.1.2",
     "commander": "^8.3.0",
-    "np": "^7.5.0",
-    "ts-node": "^7.0.1"
+    "js-yaml": "^3.14.1",
+    "np": "^7.5.0"
   },
-  "test": "echo \"No test specified\"",
-  "bin": {
-    "create-knative-cluster": "./node_modules/ts-node/dist/bin.js bin/index.ts"
+  "devDependencies": {
+    "@types/node": "^14.17.33",
+    "nodemon": "^2.0.15",
+    "ts-node": "^7.0.1",
+    "typescript": "^3.7.7"
   }
 }
