@@ -6,9 +6,11 @@ It's like "Create React App", but for setting up Kubernetes cluster with helpful
 Once the cluster is set up, you can use Pulumi to manage and update the resources using the familiar Javascipt/Typescript. Or use any other tool like kubectl if you prefer.
 
 Currently supports AWS only.
+
 Currently tested on MacOS.
 
 If something doesn't work, please [file an issue](https://github.com/sidetrekAI/create-knative-cluster/issues/new).
+
 If you have questions or need help, please join the [Slack channel](https://create-knative-cluster.slack.com)
 
 Any feedback or contribution is welcome and appreciated!
