@@ -13,6 +13,7 @@
     "build": "tsc -p .",
     "ckc": "ckc init --aws-region=us-west-1 --pulumi-organization=seunggs --custom-domain=sidetrek.com --custom-domain-zone-id=Z09102783DPQNXBVBM64X --acme-email=hello@sidetrek.com --use-direnv=true",
     "start": "npm run build && npm run ckc",
+    "publish": "npm run build && np",
     "test": "echo \"No test specified\""
   },
   "dependencies": {
