@@ -58,32 +58,6 @@ export class PulumiAutomation {
   }
 }
 
-
-
-// export const pulumiStackUp = (stack: string, programArgs: PulumiProgramArgs, options?: PulumiStackOptions) => {
-//   const { createPulumiProgram, plugins, configs = [] } = programArgs
-//   const { project, inputs = [] } = options || {}
-
-//   const program = createPulumiProgram(inputs)
-
-//   // Set the currentStack so that mainPulumiProgram will have it
-//   currentStack.set(stack)
-
-//   const projectName = project || defaultProject
-
-//   const globalConfigs = globalPulumiConfigs.get()
-//   console.log('globalConfigs', globalConfigs)
-
-//   return pulumiRun({
-//     projectName,
-//     stackName: stack,
-//     program,
-//     plugins,
-//     configs: [...configs, ...globalConfigs],
-//     options: { destroy: false },
-//   })
-// }
-
 export interface PulumiRunOptions {
   destroy?: boolean,
 }
@@ -127,7 +101,7 @@ export const pulumiRun = async ({
 
     console.log('configs inside Pulumi Run...', configs)
     if (Array.isArray(configs) && configs.length > 0) {
-      console.info(infoColor('Setting up config\n'))
+      console.info(infoColor('Setting up config...\n'))
       const configPromises = configs.map(({ key, configValue }) => {
         return stack.setConfig(key, configValue)
       })

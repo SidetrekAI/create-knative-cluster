@@ -13,15 +13,15 @@ const cliExecCtx = cliExecutionContext.get()
 const main = async () => {
   const project = pulumi.getProject()
   const stack = cliExecCtx === 'pulumi' ? pulumi.getStack() : currentStack.get()
+  // console.log('cli execution context', cliExecCtx)
   const config = new pulumi.Config()
-  const awsAccountId = await aws.getCallerIdentity({}).then(current => current.accountId)
-  const awsRegion = await aws.getRegion().then(current => current.name)
-  console.log('cli execution context', cliExecCtx)
-  console.log('project', project)
-  console.log('stack', stack)
-  console.log('custom_domain config:', config.get('custom_domain'))
-  console.log('awsAccountId', awsAccountId)
-  console.log('awsRegion', awsRegion)
+  const customDomain = config.require('custom_domain')
+  // GOTCHA: must await for the "current" first for Pulumi Automation API - otherwise it'll error out with aws:region
+  // not available - the configs seem to be set asynchronously (even though async-await is used in automation program)
+  const currentAwsAccount = await aws.getCallerIdentity({})
+  const awsAccountId = currentAwsAccount.accountId
+  const currentAwsRegion = await aws.getRegion()
+  const awsRegion = currentAwsRegion.name
 
   const appStagingNamespaceName = 'staging'
   const appProdNamespaceName = 'prod'
@@ -43,7 +43,6 @@ const main = async () => {
     const testStackOutput = { test: 'testing main.ts' }
     pulumiOutputsStore.set({ testStack: testStackOutput })
   }
-  console.log('pulumiOutputsStore.get()', pulumiOutputsStore.get())
 
   // /**
   //  * Stack: dev
@@ -118,8 +117,6 @@ const main = async () => {
    * Stack: knative_serving
    */
   if (stack === 'knative_serving') {
-    const customDomain = config.require('custom_domain')
-
     const k8sProvider = getK8sProvider()
     const { KnativeServingStack } = require('./pulumi/stacks/knative_serving')
     const knativeServingStackOutput = new KnativeServingStack('knative-serving-stack', {
@@ -153,7 +150,6 @@ const main = async () => {
    * Stack: cert_manager
    */
   if (stack === 'cert_manager') {
-    const customDomain = config.require('custom_domain')
     const customDomainZoneId = config.require('custom_domain_zone_id')
     const acmeEmail = config.require('acme_email')
 
@@ -177,8 +173,6 @@ const main = async () => {
    * Stack: knative_custom_ingress
    */
   if (stack === 'knative_custom_ingress') {
-    const customDomain = config.require('custom_domain')
-
     const k8sProvider = getK8sProvider()
     const { KnativeCustomIngressStack } = require('./pulumi/stacks/knative_custom_ingress')
     const knativeCustomIngressStackOutput = new KnativeCustomIngressStack('knative-custom-ingress-stack', {
@@ -194,7 +188,6 @@ const main = async () => {
    * Stack: kube_prometheus_stack
    */
   if (stack === 'kube_prometheus_stack') {
-    const customDomain = config.require('custom_domain')
     const grafanaUser = config.require('grafana_user')
     const grafanaPassword = config.requireSecret('grafana_password').apply(password => password)
 
@@ -249,7 +242,6 @@ const main = async () => {
    */
   if (stack === 'app_staging' || stack === 'app_prod') {
     const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
-    const customDomain = config.require('custom_domain')
     const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
     const dbSecretStagingName = dbStagingStackRef.getOutput('dbSecretName')
     const dbSecretProdName = dbProdStackRef.getOutput('dbSecretName')

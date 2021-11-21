@@ -145,8 +145,6 @@ export const setPulumiConfig = (stackName: string, config: PulumiConfig) => {
 let pulumiOutputsState: object = {}
 export let pulumiOutputsStore: any = {
   set: (outputs: object) => {
-    console.log('outputs in pulumiOutputsStore', outputs)
-    console.log('result', { ...pulumiOutputsState, ...outputs })
     pulumiOutputsState = { ...pulumiOutputsState, ...outputs }
   },
   get: () => {

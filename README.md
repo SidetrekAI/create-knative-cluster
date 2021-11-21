@@ -3,11 +3,10 @@ Create Kubernetes clusters with preinstalled Knative for easy app serving.
 
 It's like "Create React App", but for setting up Kubernetes cluster with helpful features preinstalled (node/pod autoscaling, https, monitoring, app serving, etc). It uses Pulumi to programmatically create a Kubernetes cluster and provision all the resources required to serve an app with a single command (almost). 
 
-Once the cluster is set up, you can use Pulumi to manage and update the resources using the familiar Javascipt/Typescript. Or use any other tool like kubectl if you prefer.
+Once the cluster is set up, you can use Pulumi to manage or add resources using the familiar Javascipt/Typescript. Or, you can directly manipulate Kubernetes resources using kubectl if you prefer.
 
-Currently supports AWS only.
-
-Currently tested on MacOS.
+* Currently supports AWS only.
+* Currently tested on MacOS.
 
 If something doesn't work, please [file an issue](https://github.com/sidetrekAI/create-knative-cluster/issues/new).
 
@@ -20,7 +19,7 @@ Any feedback or contribution is welcome and appreciated!
 ### Motivation
 It is far too much work to setup a working Kubernetes cluster with everything required to serve even a simple web app. Despite the introduction of interesting DevOps automation tools like Pulumi, it's common to encounter countless issues and gotchas. This package aims to remove that frustration - much like Create React App did for scaffolding a React app.
 
-Underneath, this package uses Knative to serve apps. Knative has many interesting features that make serving apps in Kubernetes clusters painless compared to traditional deployment/service pattern, such as scalable serverless setup, zero downtime deployment, easy rollbacks via revision-based deployments, blue/green or canary deployments, traffic based autoscaling, etc. Please check out the Knative docs [here](https://knative.dev/docs/) for more details.
+Underneath, this package uses Knative to serve apps. Knative has many interesting features that make serving apps in Kubernetes clusters painless compared to the traditional Kubernetes deployment/service pattern, such as scalable serverless setup, zero downtime deployment, easy rollbacks via revision-based deployments, blue/green or canary deployments, traffic based autoscaling, etc. Please check out the Knative docs [here](https://knative.dev/docs/) for more details.
 
 ### What's included
 * AWS EKS cluster with Managed Node Group: Defaults to disk space of 30GB, 3 desired nodes, 3 min nodes, and 20 max nodes.
@@ -90,6 +89,12 @@ DB password and Granafa password entered via CLI is saved as Secrets (which is b
 * To retrieve the original password for Grafana: `pulumi stack select <kube_prometheus_stack stack name>` and then `pulumi config get grafana_password`
 
 ### CD via Git Actions
+
+## Tutorials
+
+### Example Create React App with Express backend deployment
+
+
 
 ## Internals of Create Knative Cluster
 

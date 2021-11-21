@@ -17,6 +17,10 @@ import {
 import { PulumiAutomation } from './pulumi/automation/automation'
 import { PulumiConfig } from './pulumi/types'
 
+require('dotenv').config({
+  path: path.resolve(__dirname, '..', '.env')
+})
+
 const infoColor = getColor('info')
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
 
@@ -76,10 +80,12 @@ async function handleInit(options: any) {
   } = options
 
   /**
-   * Copy Pulumi files for local management
+   * Copy Pulumi files for local management (unless it's development env)
    */
-  fs.copySync(path.resolve(__dirname, '../src/main.ts'), path.resolve(cwd, 'index.ts'))
-  fs.copySync(path.resolve(__dirname, '../src/pulumi'), path.resolve(cwd, 'pulumi'))
+  if (process.env.CKC_CLI_ENV !== 'development') {
+    fs.copySync(path.resolve(__dirname, '../src/main.ts'), path.resolve(cwd, 'index.ts'))
+    fs.copySync(path.resolve(__dirname, '../src/pulumi'), path.resolve(cwd, 'pulumi'))
+  }
 
 
   /**
@@ -102,6 +108,7 @@ async function handleInit(options: any) {
   createPulumiStacks(['cluster', 'db_staging', 'db_prod'])
 
   const project = getProjectName()
+  
   const pulumiA = new PulumiAutomation(project, {
     globalConfigs: globalPulumiConfigs.get(),
     beforePulumiRun: (stack) => {
@@ -109,7 +116,7 @@ async function handleInit(options: any) {
       currentStack.set(stack)
     },
     afterPulumiRun: (stack) => {
-      // Set the globalConfigs via cli
+      // Set the globalConfigs in cli as well so that Pulumi can be locally managed (i.e. Pulumi.<stack>.yaml file is filled with right configs)
       const globalConfigs = globalPulumiConfigs.get()
       globalConfigs.forEach((globalConfig: PulumiConfig) => setPulumiConfig(stack, globalConfig))
     },
@@ -119,8 +126,7 @@ async function handleInit(options: any) {
   await pulumiA.stackUp('test', { createPulumiProgram: () => mainPulumiProgram })
 
   // // Provision EKS cluster and setup Cluster Autoscaler for autoscaling nodes based on k8s pod requirements
-  // const { clusterStack: clusterOutputs } = createAndRunPulumiStack('cluster')
-  // createAndRunPulumiStack('cluster_autoscaler')
+  // await pulumiA.stackUp('cluster', { createPulumiProgram: () => mainPulumiProgram })
 
   // // Setup kubectl
   // fs.writeFileSync(path.resolve(cwd, 'kubeconfig-devs.json'), JSON.stringify(clusterOutputs.kubeconfig.value, null, 2))
