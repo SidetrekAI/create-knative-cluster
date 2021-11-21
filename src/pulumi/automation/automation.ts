@@ -1,11 +1,6 @@
 import { InlineProgramArgs, LocalWorkspace, PulumiFn } from '@pulumi/pulumi/automation'
 import { PulumiConfig, PulumiPlugin } from '../types'
-import {
-  currentStack,
-  getColor,
-  getProjectName,
-  globalPulumiConfigs,
-} from '../helpers'
+import { getColor } from '../helpers'
 
 const infoColor = getColor('info')
 const successColor = getColor('success')
@@ -27,6 +22,7 @@ export interface PulumiStackOptions {
 export interface PulumiAutomationOptions {
   globalConfigs?: PulumiConfig[],
   beforePulumiRun?: (stack: string) => any,
+  afterPulumiRun?: (stack: string) => any,
 }
 
 export class PulumiAutomation {
@@ -38,8 +34,8 @@ export class PulumiAutomation {
     this.options = options
   }
 
-  stackUp(stack: string, programArgs: PulumiProgramArgs, options?: PulumiStackOptions) {
-    const { globalConfigs = [], beforePulumiRun } = this.options
+  async stackUp(stack: string, programArgs: PulumiProgramArgs, options?: PulumiStackOptions) {
+    const { globalConfigs = [], beforePulumiRun, afterPulumiRun } = this.options
     const { createPulumiProgram, plugins = [], configs = [] } = programArgs
     const { inputs = [] } = options || {}
 
@@ -47,7 +43,7 @@ export class PulumiAutomation {
 
     beforePulumiRun && beforePulumiRun(stack)
 
-    return pulumiRun({
+    const pulumiRunOutputs = await pulumiRun({
       projectName: this.project,
       stackName: stack,
       program,
@@ -55,6 +51,10 @@ export class PulumiAutomation {
       configs: [...configs, ...globalConfigs],
       options: { destroy: false },
     })
+
+    afterPulumiRun && afterPulumiRun(stack)
+
+    return pulumiRunOutputs
   }
 }
 
@@ -153,6 +153,7 @@ export const pulumiRun = async ({
     return upRes.outputs
   } catch (err) {
     console.log(errorColor(err))
-    process.exit(1)
+    process.exitCode = 1
+    return {}
   }
 }

@@ -89,14 +89,15 @@ async function handleInit(options: any) {
 
   // Create stacks for StackReferences first - prevents Pulumi StackReference from erroring out in mainPulumiProgram
   createPulumiStacks(['cluster', 'db_staging', 'db_prod'])
-  
+
   const project = getProjectName()
   const pulumiA = new PulumiAutomation(project, {
     globalConfigs: globalPulumiConfigs.get(),
     beforePulumiRun: (stack) => {
       // Set the current stack so that mainPulumiProgram will have the right stack
       currentStack.set(stack)
-
+    },
+    afterPulumiRun: (stack) => {
       // Set the globalConfigs via cli
       const globalConfigs = globalPulumiConfigs.get()
       globalConfigs.forEach((globalConfig: PulumiConfig) => setPulumiConfig(stack, globalConfig))
