@@ -79,8 +79,7 @@ async function handleInit(options: any) {
    * Copy Pulumi files for local management
    */
   fs.copySync(path.resolve(__dirname, '../src/main.ts'), path.resolve(cwd, 'index.ts'))
-  fs.mkdirSync(path.resolve(cwd, 'pulumi'))
-  // fs.copySync(path.resolve(__dirname, '../src/pulumi'), path.resolve(cwd, '/pulumi'))
+  fs.copySync(path.resolve(__dirname, '../src/pulumi'), path.resolve(cwd, 'pulumi'))
 
 
   /**
