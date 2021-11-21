@@ -1,6 +1,9 @@
 {
   "name": "@sidetrek/create-knative-cluster",
   "version": "0.0.1-alpha",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "bin/index.js",
   "bin": {
     "create-knative-cluster": "bin/index.js",
