@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import * as fs from 'fs'
+import * as fs from 'fs-extra'
 import * as path from 'path'
 import { Command } from 'commander'
 import {
@@ -74,6 +74,17 @@ async function handleInit(options: any) {
     grafanaUser,
     grafanaPassword,
   } = options
+
+  /**
+   * Copy Pulumi files for local management
+   */
+  fs.copySync(path.resolve(__dirname, 'main.ts'), path.resolve(cwd, 'index.ts'))
+  fs.copySync(path.resolve(__dirname, '/pulumi'), path.resolve(cwd, '/pulumi'))
+
+
+  /**
+   * Run Pulumi Automation scripts to set up Kubernetes and deploy all resources
+   */
 
   // Set global pulumi configs (these will run for every pulumi stack up)
   globalPulumiConfigs.set([
@@ -160,85 +171,3 @@ async function handleInit(options: any) {
 
   // TODO: copy the /pulumi dir to project root (test it without the actual process) for maintenance
 }
-
-
-// // Run Pulumi automation scripts to setup Kubernetes and deploy all resources
-// async function handleInit(options: any) {
-//   console.log(infoColor('\n\nStarting project build...\n\n'))
-
-//   cliOptionsStore.set(options)
-
-//   const {
-//     awsRegion,
-//     customDomain,
-//     customDomainZoneId,
-//     acmeEmail,
-//     dbUser,
-//     dbPassword,
-//     useDirenv,
-//     grafanaUser,
-//     grafanaPassword,
-//   } = options
-
-//   globalPulumiConfigs.set([
-//     { key: 'aws:region', configValue: { value: awsRegion } },
-//     { key: 'custom_domain', configValue: { value: customDomain } },
-//   ])
-
-//   // Test
-//   const testOutputs = createAndRunPulumiStack('test')
-//   console.log('testOutputs', testOutputs)
-
-//   // // Provision EKS cluster and setup Cluster Autoscaler for autoscaling nodes based on k8s pod requirements
-//   // const { clusterStack: clusterOutputs } = createAndRunPulumiStack('cluster')
-//   // createAndRunPulumiStack('cluster_autoscaler')
-
-//   // // Setup kubectl
-//   // fs.writeFileSync(path.resolve(cwd, 'kubeconfig-devs.json'), JSON.stringify(clusterOutputs.kubeconfig.value, null, 2))
-//   // if (useDirenv) {
-//   //   runCliCmd('echo export KUBECONFIG=$(pwd)/kubeconfig-devs.json > .envrc')
-//   // } else {
-//   //   runCliCmd('export KUBECONFIG=$(pwd)/kubeconfig-devs.json')
-//   // }
-
-//   // // Create namespaces for staging/prod apps
-//   // createAndRunPulumiStack('app_ns')
-
-//   // // Install istio operator via cli
-//   // runCliCmd('istioctlx operator init')
-
-//   // // Setup Knative (including Istio)
-//   // setPulumiConfig('knative_operator', { key: 'knative_serving_version', configValue: { value: '1.0.0' } })
-//   // createAndRunPulumiStack('knative_operator')
-
-//   // createAndRunPulumiStack('knative_serving')
-//   // createAndRunPulumiStack('knative_eventing')
-//   // createAndRunPulumiStack('istio')
-
-//   // // Setup cert-manager
-//   // setPulumiConfig('cert_manager', { key: 'custom_domain_zone_id', configValue: { value: customDomainZoneId } })
-//   // setPulumiConfig('cert_manager', { key: 'acme_email', configValue: { value: acmeEmail } })
-//   // createAndRunPulumiStack('cert_manager')
-
-//   // // Setup custom gateway for Knative so that custom Virtual Services can be used
-//   // createAndRunPulumiStack('knative_custom_ingress')
-
-//   // // Set up Kube Prometheus Stack (end-to-end k8s monitoring using prometheus, grafana, etc)
-//   // setPulumiConfig('kube_prometheus_stack', { key: 'grafana_user', configValue: { value: grafanaUser } })
-//   // setPulumiConfig('kube_prometheus_stack', { key: 'grafana_password', configValue: { value: grafanaPassword, secret: true } })
-//   // createAndRunPulumiStack('kube_prometheus_stack')
-
-//   // // Set up staging db and app
-//   // setPulumiConfig('db_staging', { key: 'db_user', configValue: { value: dbUser } })
-//   // setPulumiConfig('db_staging', { key: 'db_password', configValue: { value: dbPassword, secret: true } })
-//   // createAndRunPulumiStack('db_staging')
-//   // createAndRunPulumiStack('app_staging')
-
-//   // // Set up prod db and app
-//   // setPulumiConfig('db_staging', { key: 'db_user', configValue: { value: dbUser } })
-//   // setPulumiConfig('db_staging', { key: 'db_password', configValue: { value: dbPassword, secret: true } })
-//   // createAndRunPulumiStack('db_prod')
-//   // createAndRunPulumiStack('app_prod')
-
-//   // TODO: copy the /pulumi dir to project root (test it without the actual process) for maintenance
-// }
