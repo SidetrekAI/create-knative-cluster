@@ -71,6 +71,10 @@ npx create-knative-cluster init \
     --use-direnv=true \
 ```
 
+### Local management via Pulumi
+If you'd like to use Pulumi to locally manage the cluster resources, run the following script:
+
+
 ### CLI Options
 
 ### Destroying
