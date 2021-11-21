@@ -1,18 +1,18 @@
-import { Istio } from '../custom_resources'
-import { getK8sProvider } from '../helpers'
+import * as pulumi from '@pulumi/pulumi'
+import { Istio } from '../component_resources'
 
-const createPulumiProgram = (inputs?: any) => async () => {
-  const [
-    { clusterName, kubeconfig },
-  ] = inputs
-
-  const k8sProvider = getK8sProvider(clusterName.value, kubeconfig.value)
-
-  const istio = new Istio('knative-istio', {}, { provider: k8sProvider })
-
-  return {}
+export interface IstioStackArgs {
 }
 
-export default {
-  createPulumiProgram,
+export class IstioStack extends pulumi.ComponentResource {
+  constructor(name: string, args: IstioStackArgs, opts?: pulumi.ComponentResourceOptions) {
+    super('custom:stack:IstioStack', name, {}, opts)
+
+    /**
+     * IMPORTANT: must have Istio Operator already installed (i.e. via `istioctl operator init`)
+     */
+    const istio = new Istio('istio', {}, { parent: this })
+
+    this.registerOutputs()
+  }
 }

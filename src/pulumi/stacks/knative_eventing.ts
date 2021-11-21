@@ -1,18 +1,17 @@
-import { KnativeEventing } from '../custom_resources'
-import { getK8sProvider } from '../helpers'
+import * as pulumi from '@pulumi/pulumi'
+import { KnativeEventing } from '../component_resources'
 
-const createPulumiProgram = (inputs?: any) => async () => {
-  const [
-    { clusterName, kubeconfig },
-  ] = inputs
-
-  const k8sProvider = getK8sProvider(clusterName, kubeconfig)
-
-  const knativeEventing = new KnativeEventing('knative-eventing', {}, { provider: k8sProvider })
-
-  return {}
+export interface KnativeEventingStackArgs {
 }
 
-export default {
-  createPulumiProgram,
+export class KnativeEventingStack extends pulumi.ComponentResource {
+  constructor(name: string, args: KnativeEventingStackArgs, opts?: pulumi.ComponentResourceOptions) {
+    super('custom:stack:KnativeEventingStack', name, {}, opts)
+
+    const {} = args
+
+    const knativeEventing = new KnativeEventing('knative-eventing', {}, { parent: this })
+
+    this.registerOutputs()
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@sidetrek/create-knative-cluster",
-  "version": "0.1.0-alpha",
+  "version": "0.0.1-alpha",
   "main": "bin/index.js",
   "bin": {
     "create-knative-cluster": "bin/index.js",
@@ -8,7 +8,8 @@
   },
   "scripts": {
     "build": "tsc -p .",
-    "start": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts -- init -- --aws-region us-west-1 --custom-domain sidetrek.com --use-direnv true"
+    "ckc": "ckc init --aws-region=us-west-1 --pulumi-organization=seunggs --custom-domain=sidetrek.com --custom-domain-zone-id=Z09102783DPQNXBVBM64X --acme-email=hello@sidetrek.com --use-direnv=true",
+    "start": "npm run build && npm run ckc"
   },
   "test": "echo \"No test specified\"",
   "dependencies": {
@@ -20,8 +21,8 @@
     "@pulumi/pulumi": "^3.0.0",
     "chalk": "^4.1.2",
     "commander": "^8.3.0",
-    "js-yaml": "^3.14.1",
-    "np": "^7.5.0"
+    "dotenv": "^10.0.0",
+    "js-yaml": "^3.14.1"
   },
   "devDependencies": {
     "@types/node": "^14.17.33",

@@ -3,8 +3,22 @@ import * as path from 'path'
 import * as chalk from 'chalk'
 import * as k8s from '@pulumi/kubernetes'
 import { PulumiConfig } from './types'
+import { PULUMI_GENERATED_STACK_OUTPUTS_PATH } from './constants'
 
 const yaml = require('js-yaml')
+const cwd = process.cwd() // dir where the cli is run (i.e. project root)
+
+let cliExecutionContextState: string = 'pulumi'
+export const cliExecutionContext: any = {
+  set: (ctx: string) => cliExecutionContextState = ctx,
+  get: () => cliExecutionContextState
+}
+
+let currentStackState: string = ''
+export const currentStack: any = {
+  set: (stackName: string) => currentStackState = stackName,
+  get: () => currentStackState,
+}
 
 export const getProjectName = () => {
   const cwd = process.cwd() // dir where the cli is run (i.e. project root)
@@ -18,16 +32,6 @@ export const getProjectName = () => {
     const projectName = pulumiYaml.name
     return projectName
   }
-}
-
-let globalConfigState: any[] = []
-export let globalConfigs: any = {
-  set: (config: PulumiConfig) => {
-    return globalConfigState.push(config)
-  },
-  get: () => {
-    return globalConfigState
-  },
 }
 
 interface ColorMap {
@@ -45,12 +49,107 @@ export const getColor = (color: string) => {
   return themes[color]
 }
 
-export const getK8sProvider = (clusterName: string, kubeconfig: string) => {
-  return new k8s.Provider(`${clusterName}-provider`, { kubeconfig })
+let cliOptionsState: object = {}
+export let cliOptionsStore: any = {
+  set: (options: object) => {
+    cliOptionsState = options
+  },
+  get: () => {
+    return cliOptionsState
+  },
 }
 
 export const runCliCmd = (cmd: string) => {
   const { execSync } = require('child_process')
   const stdout = execSync(cmd)
   return stdout
+}
+
+export const getPrefixedStackName = (stackName: string) => {
+  const { pulumiOrganization } = cliOptionsStore.get()
+  return pulumiOrganization ? `${pulumiOrganization}/${stackName}` : `${stackName}`
+}
+
+export const getQualifiedStackName = (stackName: string) => {
+  const { pulumiOrganization } = cliOptionsStore.get()
+  const projectName = getProjectName()
+  return `${pulumiOrganization}/${projectName}/${stackName}`
+}
+
+export const createPulumiStack = (stackName: string) => {
+  const qualifiedStackName = getPrefixedStackName(stackName)
+  try {
+    runCliCmd(`pulumi stack init ${qualifiedStackName}`)
+  } catch (err) {
+    const errorMessage = (err as Error).toString()
+    if (errorMessage.includes('already exists')) {
+      return
+    } else {
+      throw new Error(errorMessage)
+    }
+  }
+}
+
+export const createPulumiStacks = (stackNames: string[]) => {
+  stackNames.forEach(stackName => createPulumiStack(stackName))
+}
+
+export const runPulumiStackCmd = (stackName: string, cmd: string) => {
+  const qualifiedStackName = getPrefixedStackName(stackName)
+  runCliCmd(`pulumi stack select ${qualifiedStackName} && ${cmd}`)
+}
+
+export const runPulumiUp = (stackName: string) => {
+  runPulumiStackCmd(stackName, `pulumi up --yes`)
+  const outputs = saveStackOutputs(stackName)
+  return outputs
+}
+
+export const saveStackOutputs = (stackName: string) => {
+  runPulumiStackCmd(stackName, `pulumi stack output --json > ${PULUMI_GENERATED_STACK_OUTPUTS_PATH}/${stackName}.json`)
+  return loadStackOutputs(stackName)
+}
+
+export const loadStackOutputs = (stackName: string) => {
+  return require(path.resolve(cwd, `${PULUMI_GENERATED_STACK_OUTPUTS_PATH}/${stackName}.json`))
+}
+
+// export const createAndRunPulumiStack = (stackName: string) => {
+//   createPulumiStack(stackName)
+
+//   // Set any global pulumi configs
+//   const globalConfigs = globalPulumiConfigs.get()
+//   globalConfigs.forEach(config => setPulumiConfig(stackName, config))
+
+//   // pulumi up
+//   const outputs = runPulumiUp(stackName)
+//   return outputs
+// }
+
+let globalPulumiConfigsState: any[] = []
+export const globalPulumiConfigs = {
+  set: (configs: PulumiConfig[]) => {
+    globalPulumiConfigsState = configs
+  },
+  get: () => {
+    return globalPulumiConfigsState
+  }
+}
+
+export const setPulumiConfig = (stackName: string, config: PulumiConfig) => {
+  const { key, configValue } = config
+  const { value, secret } = configValue
+  runPulumiStackCmd(stackName, `pulumi config set ${key} ${value}${secret ? ' --secret' : ''}`)
+}
+
+let pulumiOutputsState: object = {}
+export let pulumiOutputsStore: any = {
+  set: (outputs: object) => {
+    console.log('outputs in pulumiOutputsStore', outputs)
+    console.log('result', { ...pulumiOutputsState, ...outputs })
+    pulumiOutputsState = { ...pulumiOutputsState, ...outputs }
+  },
+  get: () => {
+    return pulumiOutputsState
+  },
 }

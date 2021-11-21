@@ -1,34 +1,28 @@
+import * as pulumi from '@pulumi/pulumi'
 import * as k8s from '@pulumi/kubernetes'
-import { getK8sProvider } from '../helpers'
 
-const createPulumiProgram = (inputs: any[]) => async () => {
-  const [
-    { clusterName, kubeconfig },
-    { appStagingNamespaceName, appProdNamespaceName },
-  ] = inputs
-  
-  const k8sProvider = getK8sProvider(clusterName.value, kubeconfig.value)
-  
-  const appStagingNamespace = new k8s.core.v1.Namespace(appStagingNamespaceName, {
-    metadata: { name: appStagingNamespaceName }
-  }, { provider: k8sProvider })
-
-  const appProdNamespace = new k8s.core.v1.Namespace(appProdNamespaceName, {
-    metadata: { name: appProdNamespaceName }
-  }, { provider: k8sProvider })
-
-  return {
-    appStagingNamespace: {
-      id: appStagingNamespace.id,
-      name: appStagingNamespace.metadata.name,
-    },
-    appProdNamespaceName: {
-      id: appProdNamespace.id,
-      name: appProdNamespace.metadata.name,
-    }
-  }
+export interface AppNsStackArgs {
+  appStagingNamespaceName: string,
+  appProdNamespaceName: string,
 }
 
-export default {
-  createPulumiProgram,
+export class AppNsStack extends pulumi.ComponentResource {
+  constructor(name: string, args: AppNsStackArgs, opts?: pulumi.ComponentResourceOptions) {
+    super('custom:stack:AppNsStack', name, {}, opts)
+
+    const {
+      appStagingNamespaceName,
+      appProdNamespaceName,
+    } = args
+
+    const appStagingNamespace = new k8s.core.v1.Namespace(appStagingNamespaceName, {
+      metadata: { name: appStagingNamespaceName }
+    }, { parent: this })
+
+    const appProdNamespace = new k8s.core.v1.Namespace(appProdNamespaceName, {
+      metadata: { name: appProdNamespaceName }
+    }, { parent: this })
+
+    this.registerOutputs()
+  }
 }

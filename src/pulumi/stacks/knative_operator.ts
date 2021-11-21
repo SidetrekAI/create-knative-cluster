@@ -1,21 +1,20 @@
-import { KnativeOperator } from '../custom_resources'
-import { getK8sProvider } from '../helpers'
+import * as pulumi from '@pulumi/pulumi'
+import { KnativeOperator } from '../component_resources'
 
-const createPulumiProgram = (inputs?: any) => async () => {
-  const [
-    { clusterName, kubeconfig },
-    { knativeOperatorVersion },
-  ] = inputs
-
-  const k8sProvider = getK8sProvider(clusterName.value, kubeconfig.value)
-
-  const knativeOperator = new KnativeOperator('knative-operator', {
-    version: knativeOperatorVersion,
-  }, { provider: k8sProvider })
-
-  return {}
+export interface KnativeOperatorStackArgs {
+  knativeServingVersion: string,
 }
 
-export default {
-  createPulumiProgram,
+export class KnativeOperatorStack extends pulumi.ComponentResource {
+  constructor(name: string, args: KnativeOperatorStackArgs, opts?: pulumi.ComponentResourceOptions) {
+    super('custom:stack:KnativeOperatorStack', name, {}, opts)
+
+    const { knativeServingVersion } = args
+
+    const knativeOperator = new KnativeOperator('knative-operator', {
+      version: knativeServingVersion,
+    }, { parent: this })
+
+    this.registerOutputs()
+  }
 }

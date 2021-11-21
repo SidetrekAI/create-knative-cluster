@@ -252,35 +252,6 @@ export class KnativeEventing extends pulumi.ComponentResource {
   }
 }
 
-// export class IstioOperator extends pulumi.ComponentResource {
-//   id: pulumi.Output<String>
-
-//   constructor(name: string, args, opts: any) {
-//     super('custom:k8s:IstioOperator', name, {}, opts)
-
-//     // Install Istio Operator using Helm
-//     const istioNamespaceName = 'istio-operator'
-//     const istioNamespace = new k8s.core.v1.Namespace(istioNamespaceName, {
-//       metadata: { name: istioNamespaceName }
-//     }, { parent: this })
-
-//     const istioOperatorReleaseName = 'istio-operator-release'
-//     const istioOperator = new k8s.helm.v3.Release(istioOperatorReleaseName, {
-//       chart: 'istio-operator',
-//       name: istioOperatorReleaseName,
-//       namespace: istioNamespaceName,
-//       repositoryOpts: {
-//         repo: 'downloads/istio-1.11.4/manifests/charts/istio-operator',
-//       },
-//       cleanupOnFail: true,
-//     }, { parent: this })
-
-//     this.id = istioOperator.id
-
-//     this.registerOutputs()
-//   }
-// }
-
 /**
  * Install Istio using the Operator (i.e. Istio Operator must already be present)
  */
@@ -405,9 +376,8 @@ export class KnativeHttpsIngressGateway extends pulumi.ComponentResource {
   }
 }
 
-// See: https://knative.dev/docs/serving/samples/knative-routing-go/
 interface KnativeVirtualServiceArgs {
-  useKnativeRouting?: boolean, // requires different vs setup than usual for Knative svc - i.e. using host Header + knative-local-gateway
+  useKnativeRouting?: boolean, // requires different VirtualService setup than usual Istio VirtualService for Knative svc - i.e. using host Header + knative-local-gateway
   namespace: string,
   gateways: string[],
   hosts: string[],

@@ -1,22 +1,25 @@
-import { KnativeServing } from '../custom_resources'
-import { getK8sProvider } from '../helpers'
+import * as pulumi from '@pulumi/pulumi'
+import { KnativeServing } from '../component_resources'
 
-const createPulumiProgram = (inputs?: any) => async () => {
-  const [
-    { clusterName, kubeconfig },
-    { customDomain, knativeHttpsIngressGatewayName },
-  ] = inputs
-
-  const k8sProvider = getK8sProvider(clusterName, kubeconfig)
-
-  const knativeServing = new KnativeServing('knative-serving', {
-    customDomain,
-    knativeHttpsIngressGatewayName,
-  }, { provider: k8sProvider })
-
-  return {}
+export interface KnativeServingStackArgs {
+  customDomain: string,
+  knativeHttpsIngressGatewayName: string,
 }
 
-export default {
-  createPulumiProgram,
+export class KnativeServingStack extends pulumi.ComponentResource {
+  constructor(name: string, args: KnativeServingStackArgs, opts?: pulumi.ComponentResourceOptions) {
+    super('custom:stack:KnativeServingStack', name, {}, opts)
+
+    const {
+      customDomain,
+      knativeHttpsIngressGatewayName,
+    } = args
+
+    const knativeServing = new KnativeServing('knative-serving', {
+      customDomain,
+      knativeHttpsIngressGatewayName,
+    }, { parent: this })
+
+    this.registerOutputs()
+  }
 }
