@@ -46,7 +46,28 @@ This project is completely open-source but the resources it provisions will cost
 4. (Optional - but recommended) Setup `direnv` to enable directory specific kubectl setup if you passed in `--use-direnv` option. This is way, you can use kubectl with multiple projects (i.e. multiple Kubernetes clusters). Follow the Basic Install in [direnv docs](https://direnv.net/) and run `direnv allow .` in the project directory to approve its use.
 
 ### Get started immediately
-Deploy your app to a Kubernetes cluster with a single command. 
+Deploy your app to a Kubernetes cluster: 
+
+```
+npx create-knative-cluster init \
+    --aws-region=<AWS region> \
+    --pulumi-organization=<Pulumi account/organization> \
+    --custom-domain=<your-domain.com> \
+    --custom-domain-zone-id=<AWS Hosted Zone ID for your custom domain> \
+    --acme-email=<ACME email address to use for Let's Encrypt> \
+    --use-direnv=true \
+```
+
+Example:
+```
+npx create-knative-cluster init \
+    --aws-region=us-west-1 \
+    --pulumi-organization=sidetrek \
+    --custom-domain=sidetrek.com \
+    --custom-domain-zone-id=Z02401234DADFCMEXX64X \
+    --acme-email=hello@sidetrek.com \
+    --use-direnv=true \
+```
 
 ### CLI Options
 

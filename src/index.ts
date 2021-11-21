@@ -28,9 +28,9 @@ program
 program
   .command('init')
   .requiredOption('--aws-region <aws region>', 'aws region; i.e. us-west-1')
-  .requiredOption('--pulumi-organization <Pulumi organization>', 'name of your Pulumi organization')
+  .requiredOption('--pulumi-organization <Pulumi account/organization>', 'name of your Pulumi account (if free plan) or organization (if paid plan)')
   .requiredOption('--custom-domain <custom domain>', 'your custom domain; i.e. your-domain.com')
-  .requiredOption('--custom-domain-zone-id <custom domain zone ID>', 'AWS Route53 hosted zone ID for your custom domain; i.e. Z02401234DADFCMEXX64X')
+  .requiredOption('--custom-domain-zone-id <custom domain zone ID>', 'AWS Route53 Hosted Zone ID for your custom domain; i.e. Z02401234DADFCMEXX64X')
   .requiredOption('--acme-email <ACME email>', 'https certificate issuer (Let\'s Encrypt) will use this to contact you about expiring certificates, and issues related to your account')
   .option('--use-direnv <use direnv>', 'to enable directory specific kubectl setup; defaults to false', false)
   .option('--db-user <DB user>', 'AWS RDS postgres db user name; defaults to admin')
@@ -78,8 +78,8 @@ async function handleInit(options: any) {
   /**
    * Copy Pulumi files for local management
    */
-  fs.copySync(path.resolve(__dirname, 'main.ts'), path.resolve(cwd, 'index.ts'))
-  fs.copySync(path.resolve(__dirname, '/pulumi'), path.resolve(cwd, '/pulumi'))
+  fs.copySync(path.resolve(__dirname, '../src/main.ts'), path.resolve(cwd, 'index.ts'))
+  fs.copySync(path.resolve(__dirname, '../src/pulumi'), path.resolve(cwd, '/pulumi'))
 
 
   /**
