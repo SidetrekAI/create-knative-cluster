@@ -1,36 +1,35 @@
 import * as pulumi from '@pulumi/pulumi'
 import * as aws from '@pulumi/aws'
 import * as k8s from '@pulumi/kubernetes'
-import {
-  cliExecutionContext,
-  currentStack,
-  getQualifiedStackName,
-  pulumiOutputsStore,
-} from './pulumi/helpers'
+import { getQualifiedStackName, pulumiOutputsStore } from './pulumi/helpers'
+import { simpleStore } from './pulumi/store'
 
-const cliExecCtx = cliExecutionContext.get()
+const cliExecCtx = simpleStore.getState('cliExecutionContext')
 
 const main = async () => {
-  const project = pulumi.getProject()
-  const stack = cliExecCtx === 'pulumi' ? pulumi.getStack() : currentStack.get()
   // console.log('cli execution context', cliExecCtx)
+  const organization = cliExecCtx === 'pulumi' ? process.env.PULUMI_ORGANIZATION : simpleStore.getState('pulumiOrganization')
+  const project = pulumi.getProject()
+  const stack = cliExecCtx === 'pulumi' ? pulumi.getStack() : simpleStore.getState('currentStack')
   const config = new pulumi.Config()
   const customDomain = config.require('custom_domain')
   // GOTCHA: must await for the "current" first for Pulumi Automation API - otherwise it'll error out with aws:region
-  // not available - the configs seem to be set asynchronously (even though async-await is used in automation program)
+  // not available - the configs seem to be set asynchronously (even though async-await is used in the automation program)
   const currentAwsAccount = await aws.getCallerIdentity({})
+  // console.log('currentAwsAccount', currentAwsAccount)
   const awsAccountId = currentAwsAccount.accountId
   const currentAwsRegion = await aws.getRegion()
   const awsRegion = currentAwsRegion.name
-
+  // console.log('awsRegion', awsRegion)
+  
   const appStagingNamespaceName = 'staging'
   const appProdNamespaceName = 'prod'
   const knativeHttpsIngressGatewayName = 'knative-https-ingress-gateway'
   const kubePrometheusStackNamespaceName = 'kube-prometheus-stack'
 
-  const clusterStackRef = new pulumi.StackReference(getQualifiedStackName('cluster'))
-  const dbStagingStackRef = new pulumi.StackReference(getQualifiedStackName('db_staging'))
-  const dbProdStackRef = new pulumi.StackReference(getQualifiedStackName('db_prod'))
+  const clusterStackRef = new pulumi.StackReference(getQualifiedStackName(organization, 'cluster'))
+  const dbStagingStackRef = new pulumi.StackReference(getQualifiedStackName(organization, 'db_staging'))
+  const dbProdStackRef = new pulumi.StackReference(getQualifiedStackName(organization, 'db_prod'))
 
   const getK8sProvider = () => {
     const kubeconfig = clusterStackRef.getOutput('kubeconfig')
@@ -222,7 +221,7 @@ const main = async () => {
     const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
     const sgRdsId = clusterStackRef.getOutput('sgRdsId')
     const vpcPublicSubnetIds = clusterStackRef.getOutput('vpcPublicSubnetIds')
-    
+
     const k8sProvider = getK8sProvider()
     const { DbStack } = require('./pulumi/stacks/db')
     const dbStackOutput = new DbStack('app-svc-stack', {
@@ -246,7 +245,7 @@ const main = async () => {
     const dbSecretStagingName = dbStagingStackRef.getOutput('dbSecretName')
     const dbSecretProdName = dbProdStackRef.getOutput('dbSecretName')
     const dbSecretName = stackEnv === 'prod' ? dbSecretProdName : dbSecretStagingName
-    
+
     const k8sProvider = getK8sProvider()
     const { AppStack } = require('./pulumi/stacks/app')
     const appStackOutput = new AppStack('app-stack', {

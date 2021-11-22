@@ -4,25 +4,24 @@ import * as fs from 'fs-extra'
 import * as path from 'path'
 import { Command } from 'commander'
 import {
-  cliExecutionContext,
   getColor,
-  cliOptionsStore,
   runCliCmd,
-  globalPulumiConfigs,
   setPulumiConfig,
   getProjectName,
-  currentStack,
   createPulumiStacks,
 } from './pulumi/helpers'
 import { PulumiAutomation } from './pulumi/automation/automation'
 import { PulumiConfig } from './pulumi/types'
+import { simpleStore } from './pulumi/store'
 
-require('dotenv').config({
-  path: path.resolve(__dirname, '..', '.env')
-})
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') })
 
 const infoColor = getColor('info')
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
+
+type CliOptions = {
+  [key: string]: any,
+}
 
 const program = new Command()
 
@@ -32,7 +31,6 @@ program
 program
   .command('init')
   .requiredOption('--aws-region <aws region>', 'aws region; i.e. us-west-1')
-  .requiredOption('--pulumi-organization <Pulumi account/organization>', 'name of your Pulumi account (if free plan) or organization (if paid plan)')
   .requiredOption('--custom-domain <custom domain>', 'your custom domain; i.e. your-domain.com')
   .requiredOption('--custom-domain-zone-id <custom domain zone ID>', 'AWS Route53 Hosted Zone ID for your custom domain; i.e. Z02401234DADFCMEXX64X')
   .requiredOption('--acme-email <ACME email>', 'https certificate issuer (Let\'s Encrypt) will use this to contact you about expiring certificates, and issues related to your account')
@@ -60,12 +58,12 @@ program
  *    Run Pulumi automation scripts to setup Kubernetes and deploy all resources (since as of today, Pulumi CLI cannot be run in a Node script)
  *    Set Pulumi configs via cli - this ensures that configs are stored locally for easier local maintenance (i.e. Pulumi.<stack>.yaml file will be created)
  */
-async function handleInit(options: any) {
+async function handleInit(options: CliOptions) {
   console.log(infoColor('\n\nStarting project build...\n\n'))
   console.log('opions', options)
 
   // Make options available in other modules
-  cliOptionsStore.set(options)
+  simpleStore.setState('cliOptions', options)
 
   const {
     awsRegion,
@@ -93,32 +91,36 @@ async function handleInit(options: any) {
    */
 
   // Set global pulumi configs (these will run for every pulumi stack up)
-  globalPulumiConfigs.set([
+  simpleStore.setState('globalPulumiConfigs', [
     { key: 'aws:region', configValue: { value: awsRegion } }, // GOTCHA: adding secret field will make this fail
     { key: 'custom_domain', configValue: { value: customDomain } },
   ])
 
   // First set the cli execution context so that mainPulumiProgram will get the stack name from pulumiStackUp func
-  cliExecutionContext.set('ckc')
+  simpleStore.setState('cliExecutionContext', 'ckc')
+
+  // Set pulumi organization
+  const pulumiOrganization = process.env.PULUMI_ORGANIZATION || ''
+  simpleStore.setState('pulumiOrganization', pulumiOrganization)
 
   // Must be imported after the cli execution context is set so it has the right context
   const mainPulumiProgram = require('./main')
 
   // Create stacks for StackReferences first - prevents Pulumi StackReference from erroring out in mainPulumiProgram
-  createPulumiStacks(['cluster', 'db_staging', 'db_prod'])
+  createPulumiStacks(pulumiOrganization, ['cluster', 'db_staging', 'db_prod'])
 
   const project = getProjectName()
-  
+  const globalPulumiConfigs = simpleStore.getState('globalPulumiConfigs')
+
   const pulumiA = new PulumiAutomation(project, {
-    globalConfigs: globalPulumiConfigs.get(),
-    beforePulumiRun: (stack) => {
+    globalConfigs: globalPulumiConfigs,
+    beforePulumiRun: (stackName) => {
       // Set the current stack so that mainPulumiProgram will have the right stack
-      currentStack.set(stack)
+      simpleStore.setState('currentStack', stackName)
     },
-    afterPulumiRun: (stack) => {
+    afterPulumiRun: (stackName) => {
       // Set the globalConfigs in cli as well so that Pulumi can be locally managed (i.e. Pulumi.<stack>.yaml file is filled with right configs)
-      const globalConfigs = globalPulumiConfigs.get()
-      globalConfigs.forEach((globalConfig: PulumiConfig) => setPulumiConfig(stack, globalConfig))
+      globalPulumiConfigs.forEach((globalConfig: PulumiConfig) => setPulumiConfig(pulumiOrganization, stackName, globalConfig))
     },
   })
 

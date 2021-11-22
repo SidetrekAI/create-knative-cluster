@@ -14,6 +14,7 @@ If you have questions or need help, please join the [Slack channel](https://crea
 
 Any feedback or contribution is welcome and appreciated!
 
+
 ## Overview
 
 ### Motivation
@@ -38,13 +39,16 @@ This project is completely open-source but the resources it provisions will cost
 1. Pulumi: Whether you're on a free or paid plan, the default setup should cost you nothing (as of Nov 2021). On a paid plan, it'll come pretty close as create-knative-cluster will provision 200+ resources.
 2. AWS: With EKS, EC2 instances, and RDS, the default setup will cost you ~$200/mo.
 
+
 ## Creating a Knative cluster
 
 ### Pre-requisites
-1. Create a Pulumi project
+1. Create a Pulumi typescript project
+   1. Add PULUMI_ORGANIZATION to .env - this is the name of your Pulumi account (if free plan) or organization (if paid plan)
 2. Setup AWS credentials
 3. Install `kubectl` and `istioctl`
-4. (Optional - but recommended) Setup `direnv` to enable directory specific kubectl setup if you passed in `--use-direnv` option. This is way, you can use kubectl with multiple projects (i.e. multiple Kubernetes clusters). Follow the Basic Install in [direnv docs](https://direnv.net/) and run `direnv allow .` in the project directory to approve its use.
+4. Install npm dependencies: `npm i @pulumi/aws @pulumi/awsx @pulumi/eks @pulumi/kubernetes @pulumi/kubernetes-cert-manager @pulumi/pulumi`
+5. (Optional - but recommended) Setup `direnv` to enable directory specific kubectl setup if you passed in `--use-direnv` option. This is way, you can use kubectl with multiple projects (i.e. multiple Kubernetes clusters). Follow the Basic Install in [direnv docs](https://direnv.net/) and run `direnv allow .` in the project directory to approve its use.
 
 ### Get started immediately
 Deploy your app to a Kubernetes cluster: 
@@ -52,7 +56,6 @@ Deploy your app to a Kubernetes cluster:
 ```
 npx create-knative-cluster init \
     --aws-region=<AWS region> \
-    --pulumi-organization=<Pulumi account/organization> \
     --custom-domain=<your-domain.com> \
     --custom-domain-zone-id=<AWS Hosted Zone ID for your custom domain> \
     --acme-email=<ACME email address to use for Let's Encrypt> \
@@ -63,7 +66,6 @@ Example:
 ```
 npx create-knative-cluster init \
     --aws-region=us-west-1 \
-    --pulumi-organization=sidetrek \
     --custom-domain=sidetrek.com \
     --custom-domain-zone-id=Z02401234DADFCMEXX64X \
     --acme-email=hello@sidetrek.com \
@@ -90,9 +92,15 @@ DB password and Granafa password entered via CLI is saved as Secrets (which is b
 
 ### CD via Git Actions
 
+
 ## Tutorials
 
 ### Example Create React App with Express backend deployment
+
+
+### Update existing resources using Pulumi
+
+
 
 
 
