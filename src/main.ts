@@ -19,6 +19,7 @@ const main = async () => {
   // console.log('currentAwsAccount', currentAwsAccount)
   const awsAccountId = currentAwsAccount.accountId
   const currentAwsRegion = await aws.getRegion()
+  // console.log('currentAwsRegion', currentAwsRegion)
   const awsRegion = currentAwsRegion.name
   // console.log('awsRegion', awsRegion)
   
