@@ -8,20 +8,16 @@ const cliExecCtx = simpleStore.getState('cliExecutionContext')
 
 const main = async () => {
   // console.log('cli execution context', cliExecCtx)
-  const organization = cliExecCtx === 'pulumi' ? process.env.PULUMI_ORGANIZATION : simpleStore.getState('pulumiOrganization')
+  const organization = cliExecCtx === 'ckc' ? simpleStore.getState('pulumiOrganization') : process.env.PULUMI_ORGANIZATION
   const project = pulumi.getProject()
-  const stack = cliExecCtx === 'pulumi' ? pulumi.getStack() : simpleStore.getState('currentStack')
+  const stack = cliExecCtx === 'ckc' ? simpleStore.getState('currentStack') : pulumi.getStack()
   const config = new pulumi.Config()
-  const customDomain = config.require('custom_domain')
-  // GOTCHA: must await for the "current" first for Pulumi Automation API - otherwise it'll error out with aws:region
-  // not available - the configs seem to be set asynchronously (even though async-await is used in the automation program)
-  const currentAwsAccount = await aws.getCallerIdentity({})
-  // console.log('currentAwsAccount', currentAwsAccount)
-  const awsAccountId = currentAwsAccount.accountId
-  const currentAwsRegion = await aws.getRegion()
-  // console.log('currentAwsRegion', currentAwsRegion)
-  const awsRegion = currentAwsRegion.name
-  // console.log('awsRegion', awsRegion)
+  
+  // HACK: configs are intermittenly not available currently (looks like Pulumi Automation API bug)
+  // Use a workaround to get it from user input and aws cli instead of from Pulumi config
+  const customDomain = cliExecCtx === 'ckc' ? simpleStore.getState('customDomain') : config.require('custom_domain')
+  const awsAccountId = cliExecCtx === 'ckc' ? simpleStore.getState('awsAccountId') : await aws.getCallerIdentity({}).then(current => current.accountId)
+  const awsRegion = cliExecCtx === 'ckc' ? simpleStore.getState('awsRegion') : await aws.getRegion().then(current => current.name)
   
   const appStagingNamespaceName = 'staging'
   const appProdNamespaceName = 'prod'

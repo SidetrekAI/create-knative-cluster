@@ -43,14 +43,14 @@ This project is completely open-source but the resources it provisions will cost
 ## Creating a Knative cluster
 
 ### Pre-requisites
-1. Create a Pulumi typescript project
-   1. Add PULUMI_ORGANIZATION to .env - this is the name of your Pulumi account (if free plan) or organization (if paid plan)
-2. Setup AWS credentials
-3. Install `kubectl` and `istioctl`
-4. Install npm dependencies: `npm i @pulumi/aws @pulumi/awsx @pulumi/eks @pulumi/kubernetes @pulumi/kubernetes-cert-manager @pulumi/pulumi`
-5. (Optional - but recommended) Setup `direnv` to enable directory specific kubectl setup if you passed in `--use-direnv` option. This is way, you can use kubectl with multiple projects (i.e. multiple Kubernetes clusters). Follow the Basic Install in [direnv docs](https://direnv.net/) and run `direnv allow .` in the project directory to approve its use.
+1. Create a Pulumi AWS Typescript project
+   1. Follow the instructions in [Pulumi docs](https://www.pulumi.com/docs/get-started/aws/begin/) to set up Pulumi and AWS credentials
+   2. Add PULUMI_ORGANIZATION to .env - this is the name of your Pulumi account (if free plan) or organization (if paid plan)
+2. Install `aws` cli, `kubectl` and `istioctl`
+3. Install npm dependencies: `npm i @pulumi/aws @pulumi/awsx @pulumi/eks @pulumi/kubernetes @pulumi/kubernetes-cert-manager @pulumi/pulumi`
+4. (Optional - but recommended) Setup `direnv` to enable directory specific kubectl setup if you passed in `--use-direnv` option. This is way, you can use kubectl with multiple projects (i.e. multiple Kubernetes clusters). Follow the Basic Install in [direnv docs](https://direnv.net/) and run `direnv allow .` in the project directory to approve its use.
 
-### Get started immediately
+### Get started
 Deploy your app to a Kubernetes cluster: 
 
 ```

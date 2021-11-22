@@ -30,6 +30,9 @@ simpleStore.setDefaultStates({
   cliOptions: {},
   globalPulumiConfigs: [],
   pulumiOrganization: '',
+  customDomain: '',
+  awsAccountId: '',
+  awsRegion: '',
 })
 
 export { simpleStore }

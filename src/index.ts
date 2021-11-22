@@ -6,6 +6,7 @@ import { Command } from 'commander'
 import {
   getColor,
   runCliCmd,
+  getAwsAccountId,
   setPulumiConfig,
   getProjectName,
   createPulumiStacks,
@@ -102,6 +103,13 @@ async function handleInit(options: CliOptions) {
   // Set pulumi organization
   const pulumiOrganization = process.env.PULUMI_ORGANIZATION || ''
   simpleStore.setState('pulumiOrganization', pulumiOrganization)
+
+  // HACK: due to Pulumi bug of not setting the configs in time to be used inside the program, 
+  // we need to set some variables manually
+  simpleStore.setState('customDomain', customDomain)
+  simpleStore.setState('awsRegion', awsRegion)
+  const awsAccountId = getAwsAccountId()
+  simpleStore.setState('awsAccountId', awsAccountId)
 
   // Must be imported after the cli execution context is set so it has the right context
   const mainPulumiProgram = require('./main')

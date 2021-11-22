@@ -2,7 +2,6 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as chalk from 'chalk'
 import { PulumiConfig } from './types'
-import { PULUMI_GENERATED_STACK_OUTPUTS_PATH } from './constants'
 
 const yaml = require('js-yaml')
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
@@ -88,4 +87,9 @@ export let pulumiOutputsStore: any = {
   get: () => {
     return pulumiOutputsState
   },
+}
+
+export const getAwsAccountId = () => {
+  const stdout = runCliCmd(`aws sts get-caller-identity`)
+  return JSON.parse(stdout.toString()).Account
 }
