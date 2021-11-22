@@ -23,6 +23,7 @@
     "@pulumi/kubernetes": "^3.9.0",
     "@pulumi/kubernetes-cert-manager": "^0.0.1",
     "@pulumi/pulumi": "^3.0.0",
+    "@types/fs-extra": "^9.0.13",
     "chalk": "^4.1.2",
     "commander": "^8.3.0",
     "dotenv": "^10.0.0",
@@ -30,7 +31,6 @@
     "js-yaml": "^3.14.1"
   },
   "devDependencies": {
-    "@types/fs-extra": "^9.0.13",
     "@types/node": "^14.17.33",
     "nodemon": "^2.0.15",
     "ts-node": "^7.0.1",
