@@ -7,11 +7,12 @@ import { simpleStore } from './pulumi/store'
 const cliExecCtx = simpleStore.getState('cliExecutionContext')
 
 const main = async () => {
+  const config = new pulumi.Config()
+
   // console.log('cli execution context', cliExecCtx)
-  const organization = cliExecCtx === 'ckc' ? simpleStore.getState('pulumiOrganization') : process.env.PULUMI_ORGANIZATION
+  const organization = cliExecCtx === 'ckc' ? simpleStore.getState('pulumiOrganization') : config.require('pulumi_organization')
   const project = pulumi.getProject()
   const stack = cliExecCtx === 'ckc' ? simpleStore.getState('currentStack') : pulumi.getStack()
-  const config = new pulumi.Config()
   
   // HACK: configs are intermittenly not available currently (looks like Pulumi Automation API bug)
   // Use a workaround to get it from user input and aws cli instead of from Pulumi config

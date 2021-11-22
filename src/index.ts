@@ -32,6 +32,7 @@ program
 program
   .command('init')
   .requiredOption('--aws-region <aws region>', 'aws region; i.e. us-west-1')
+  .requiredOption('--pulumi-organization <Pulumi account/organization>', 'name of your Pulumi account (if free plan) or organization (if paid plan)')
   .requiredOption('--custom-domain <custom domain>', 'your custom domain; i.e. your-domain.com')
   .requiredOption('--custom-domain-zone-id <custom domain zone ID>', 'AWS Route53 Hosted Zone ID for your custom domain; i.e. Z02401234DADFCMEXX64X')
   .requiredOption('--acme-email <ACME email>', 'https certificate issuer (Let\'s Encrypt) will use this to contact you about expiring certificates, and issues related to your account')
@@ -68,6 +69,7 @@ async function handleInit(options: CliOptions) {
 
   const {
     awsRegion,
+    pulumiOrganization,
     customDomain,
     customDomainZoneId,
     acmeEmail,
@@ -93,7 +95,8 @@ async function handleInit(options: CliOptions) {
 
   // Set global pulumi configs (these will run for every pulumi stack up)
   simpleStore.setState('globalPulumiConfigs', [
-    { key: 'aws:region', configValue: { value: awsRegion } }, // GOTCHA: adding secret field will make this fail
+    { key: 'aws:region', configValue: { value: awsRegion } },
+    { key: 'pulumi_organization', configValue: { value: pulumiOrganization } },
     { key: 'custom_domain', configValue: { value: customDomain } },
   ])
 
@@ -101,7 +104,6 @@ async function handleInit(options: CliOptions) {
   simpleStore.setState('cliExecutionContext', 'ckc')
 
   // Set pulumi organization
-  const pulumiOrganization = process.env.PULUMI_ORGANIZATION || ''
   simpleStore.setState('pulumiOrganization', pulumiOrganization)
 
   // HACK: due to Pulumi bug of not setting the configs in time to be used inside the program, 

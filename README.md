@@ -44,8 +44,7 @@ This project is completely open-source but the resources it provisions will cost
 
 ### Pre-requisites
 1. Create a Pulumi AWS Typescript project
-   1. Follow the instructions in [Pulumi docs](https://www.pulumi.com/docs/get-started/aws/begin/) to set up Pulumi and AWS credentials
-   2. Add PULUMI_ORGANIZATION to .env - this is the name of your Pulumi account (if free plan) or organization (if paid plan)
+   * Follow the instructions in [Pulumi docs](https://www.pulumi.com/docs/get-started/aws/begin/) to set up Pulumi and AWS credentials
 2. Install `aws` cli, `kubectl` and `istioctl`
 3. Install npm dependencies: `npm i @pulumi/aws @pulumi/awsx @pulumi/eks @pulumi/kubernetes @pulumi/kubernetes-cert-manager @pulumi/pulumi`
 4. (Optional - but recommended) Setup `direnv` to enable directory specific kubectl setup if you passed in `--use-direnv` option. This is way, you can use kubectl with multiple projects (i.e. multiple Kubernetes clusters). Follow the Basic Install in [direnv docs](https://direnv.net/) and run `direnv allow .` in the project directory to approve its use.
@@ -56,6 +55,7 @@ Deploy your app to a Kubernetes cluster:
 ```
 npx create-knative-cluster init \
     --aws-region=<AWS region> \
+    --pulumi-organization=<Pulumi account/organization name> \
     --custom-domain=<your-domain.com> \
     --custom-domain-zone-id=<AWS Hosted Zone ID for your custom domain> \
     --acme-email=<ACME email address to use for Let's Encrypt> \
@@ -66,6 +66,7 @@ Example:
 ```
 npx create-knative-cluster init \
     --aws-region=us-west-1 \
+    --pulumi-organization=sidetrek \
     --custom-domain=sidetrek.com \
     --custom-domain-zone-id=Z02401234DADFCMEXX64X \
     --acme-email=hello@sidetrek.com \
