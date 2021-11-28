@@ -1,5 +1,5 @@
 import * as pulumi from '@pulumi/pulumi'
-import { KnativeOperator } from '../component_resources'
+import { KnativeOperator } from '../component-resources'
 
 export interface KnativeOperatorStackArgs {
   knativeServingVersion: string,
@@ -10,6 +10,7 @@ export class KnativeOperatorStack extends pulumi.ComponentResource {
     super('custom:stack:KnativeOperatorStack', name, {}, opts)
 
     const { knativeServingVersion } = args
+    console.log('knativeServingVersion', knativeServingVersion)
 
     const knativeOperator = new KnativeOperator('knative-operator', {
       version: knativeServingVersion,

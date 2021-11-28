@@ -1,12 +1,12 @@
 import * as pulumi from '@pulumi/pulumi'
-import { CertManager, WildcardCertificate } from '../component_resources'
+import { CertManager, WildcardCertificate } from '../component-resources'
 
 export interface CertManagerStackArgs {
   awsAccountId: string,
   awsRegion: string,
   hostedZoneId: string,
   customDomain: string,
-  eksHash: string,
+  eksHash: pulumi.Output<string>,
   acmeEmail: string,
 }
 

@@ -4,7 +4,7 @@ import {
   KnativeServiceMonitors,
   KnativeGrafanaDashboards,
   KnativeVirtualService,
-} from '../component_resources'
+} from '../component-resources'
 
 export interface KubePrometheusStackStackArgs {
   customDomain: string,
@@ -43,22 +43,22 @@ export class KubePrometheusStackStack extends pulumi.ComponentResource {
     const knativeGrafanaDashboards = new KnativeGrafanaDashboards('knative-grafana-dashboards',
       {}, { parent: this, dependsOn: [kubePrometheusStack] })
 
-    /**
-     * Expose Prometheus Dashboard as a separate subdomain
-     */
-    const prometheusKvsName = 'prometheus-route'
-    const prometheusKvs = new KnativeVirtualService(prometheusKvsName, {
-      namespace: kubePrometheusStackNamespaceName,
-      gateways: [`${knativeHttpsIngressGatewayName}.knative-serving.svc.cluster.local`],
-      hosts: [`prometheus-dashboard.${customDomain}`],
-      routes: [
-        {
-          uri: '/',
-          rewriteUri: '/',
-          serviceHostname: `kube-prometheus-stack-prometheus.${kubePrometheusStackNamespaceName}.svc.cluster.local`,
-        },
-      ]
-    }, { parent: this, dependsOn: [kubePrometheusStack] })
+    // /**
+    //  * Expose Prometheus Dashboard as a separate subdomain
+    //  */
+    // const prometheusKvsName = 'prometheus-route'
+    // const prometheusKvs = new KnativeVirtualService(prometheusKvsName, {
+    //   namespace: kubePrometheusStackNamespaceName,
+    //   gateways: [`${knativeHttpsIngressGatewayName}.knative-serving.svc.cluster.local`],
+    //   hosts: [`prometheus-dashboard.${customDomain}`],
+    //   routes: [
+    //     {
+    //       uri: '/',
+    //       rewriteUri: '/',
+    //       serviceHostname: `kube-prometheus-stack-prometheus.${kubePrometheusStackNamespaceName}.svc.cluster.local`,
+    //     },
+    //   ]
+    // }, { parent: this, dependsOn: [kubePrometheusStack] })
 
     /**
      * Expose Grafana Dashboard as a separate subdomain

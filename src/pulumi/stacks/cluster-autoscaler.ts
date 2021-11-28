@@ -1,11 +1,11 @@
 import * as pulumi from '@pulumi/pulumi'
-import { ClusterAutoscaler } from '../component_resources'
+import { ClusterAutoscaler } from '../component-resources'
 
 export interface ClusterAutoscalerStackArgs {
   awsAccountId: string,
   awsRegion: string,
-  clusterName: string,
-  eksHash: string,
+  clusterName: pulumi.Output<string>,
+  eksHash: pulumi.Output<string>,
 }
 
 export class ClusterAutoscalerStack extends pulumi.ComponentResource {

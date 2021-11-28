@@ -1,6 +1,7 @@
 {
   "name": "@sidetrek/create-knative-cluster",
   "version": "0.0.18",
+  "type": "commonjs",
   "publishConfig": {
     "access": "public"
   },
@@ -11,8 +12,10 @@
   },
   "scripts": {
     "build": "tsc -p .",
-    "ckc": "ckc init --aws-region=us-west-1 --custom-domain=sidetrek.com --custom-domain-zone-id=Z09102783DPQNXBVBM64X --acme-email=hello@sidetrek.com --use-direnv=true",
-    "start": "npm run build && npm run ckc",
+    "ckc:init": "ckc init --aws-region=us-west-1 --pulumi-organization=seunggs --custom-domain=sidetrek.com --custom-domain-zone-id=Z09102783DPQNXBVBM64X --acme-email=hello@sidetrek.com --use-direnv",
+    "start": "npm run build && npm run ckc:init",
+    "ckc:destroy": "ckc destroy",
+    "destroy": "npm run build && npm run ckc:destroy",
     "release": "npm run build && np",
     "test": "echo \"No test specified\""
   },
@@ -24,11 +27,16 @@
     "@pulumi/kubernetes-cert-manager": "^0.0.1",
     "@pulumi/pulumi": "^3.0.0",
     "@types/fs-extra": "^9.0.13",
+    "@types/js-yaml": "^4.0.5",
     "chalk": "^4.1.2",
     "commander": "^8.3.0",
     "dotenv": "^10.0.0",
+    "enquirer": "^2.3.6",
     "fs-extra": "^10.0.0",
-    "js-yaml": "^3.14.1"
+    "gradient-string": "^1.2.0",
+    "js-yaml": "^3.14.1",
+    "log-update": "^4.0.0",
+    "ora": "^5.4.1"
   },
   "devDependencies": {
     "@types/node": "^14.17.33",

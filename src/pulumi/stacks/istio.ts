@@ -1,5 +1,5 @@
 import * as pulumi from '@pulumi/pulumi'
-import { Istio } from '../component_resources'
+import { Istio } from '../component-resources'
 
 export interface IstioStackArgs {
 }

@@ -1,5 +1,5 @@
 import * as pulumi from '@pulumi/pulumi'
-import { KnativeServing } from '../component_resources'
+import { KnativeServing } from '../component-resources'
 
 export interface KnativeServingStackArgs {
   customDomain: string,

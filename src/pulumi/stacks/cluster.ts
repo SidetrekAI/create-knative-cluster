@@ -3,25 +3,20 @@ import * as awsx from '@pulumi/awsx'
 import * as eks from '@pulumi/eks'
 import * as aws from '@pulumi/aws'
 
-export interface ClusterScalingConfig {
-  desiredSize: number,
-  minSize: number,
-  maxSize: number,
-}
-
 export interface ClusterStackArgs {
   project: string,
-  diskSize: number,
-  scalingConfig: ClusterScalingConfig,
 }
 
 export class ClusterStack extends pulumi.ComponentResource {
+  vpc: awsx.ec2.Vpc
+  vpcId: pulumi.Output<string>
   vpcPublicSubnetIds: Promise<pulumi.Output<string>[]>
   kubeconfig: pulumi.Output<any>
   clusterName: string
-  clusterOidcProviderId: pulumi.Output<string> | undefined
-  clusterOidcProviderArn: pulumi.Output<string> | undefined
-  sgRdsId: pulumi.Output<string>
+  clusterOidcProviderId: pulumi.Output<string>
+  clusterOidcProviderUrl: pulumi.Output<string>
+  clusterOidcProviderArn: pulumi.Output<string>
+  eksHash: pulumi.Output<string>
 
   constructor(name: string, args: ClusterStackArgs, opts?: pulumi.ComponentResourceOptions) {
     super('custom:stack:ClusterStack', name, {}, opts)
@@ -70,23 +65,7 @@ export class ClusterStack extends pulumi.ComponentResource {
       instanceRoles: [nodeGroupRole],
     }, {})
     const kubeconfig = cluster.kubeconfig
-    const clusterOidcProviderId = cluster.core.oidcProvider?.id
-    const clusterOidcProviderArn = cluster.core.oidcProvider?.arn
-
-    /**
-     * VPC Security Group for RDS
-     */
-    const sgRds = new awsx.ec2.SecurityGroup('custom-rds', { vpc })
-    awsx.ec2.SecurityGroupRule.ingress('postgres-access', sgRds,
-      new awsx.ec2.AnyIPv4Location(),
-      new awsx.ec2.TcpPorts(5432),
-      'allow all postgres access'
-    )
-    awsx.ec2.SecurityGroupRule.ingress('ssh-access', sgRds,
-      new awsx.ec2.AnyIPv4Location(),
-      new awsx.ec2.TcpPorts(22),
-      'allow ssh access'
-    )
+    const clusterOidcProvider = cluster.core.oidcProvider as any
 
     /**
      * EKS managed node group
@@ -109,8 +88,8 @@ export class ClusterStack extends pulumi.ComponentResource {
       nodeRole: nodeGroupRole,
       diskSize: 30,
       scalingConfig: {
-        desiredSize: 3,
-        minSize: 3,
+        desiredSize: 4,
+        minSize: 4,
         maxSize: 20,
       },
     }, { // DO NOT specify k8sProvider here - it'll error out
@@ -118,12 +97,15 @@ export class ClusterStack extends pulumi.ComponentResource {
       ignoreChanges: ['scalingConfig.desiredSize'], // required for Cluster Autoscaler setup
     })
 
+    this.vpc = vpc
+    this.vpcId = vpc.id
     this.vpcPublicSubnetIds = vpc.publicSubnetIds
     this.kubeconfig = kubeconfig
     this.clusterName = clusterName
-    this.clusterOidcProviderId = clusterOidcProviderId
-    this.clusterOidcProviderArn = clusterOidcProviderArn
-    this.sgRdsId = sgRds.id
+    this.clusterOidcProviderId = clusterOidcProvider.id
+    this.clusterOidcProviderUrl = clusterOidcProvider.url
+    this.clusterOidcProviderArn = clusterOidcProvider.arn
+    this.eksHash = clusterOidcProvider.id.apply((oidcProviderId: string) => oidcProviderId.split('/').slice(-1)[0])
 
     this.registerOutputs()
   }

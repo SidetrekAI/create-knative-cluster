@@ -1,3 +1,4 @@
 config:
   aws:region: us-west-1
   create-knative-cluster:custom_domain: sidetrek.com
+  create-knative-cluster:pulumi_organization: seunggs

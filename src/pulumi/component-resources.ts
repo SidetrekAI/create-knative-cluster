@@ -8,7 +8,7 @@ import {
   getRoute53AddRecordsPolicy,
   getCertManagerRoleTrustPolicy,
   getClusterAutoscalerRoleTrustPolicy,
-} from './iam_policies'
+} from './iam-policies'
 
 /**
  * Set up ClusterAutoscaler
@@ -18,8 +18,8 @@ import {
 interface ClusterAutoscalerArgs {
   awsAccountId: string,
   awsRegion: string,
-  clusterName: string,
-  eksHash: string,
+  clusterName: pulumi.Output<string>,
+  eksHash: pulumi.Output<string>,
 }
 
 export class ClusterAutoscaler extends pulumi.ComponentResource {
@@ -90,9 +90,20 @@ export class ClusterAutoscaler extends pulumi.ComponentResource {
   }
 }
 
+interface RdsPostgresArgs {
+  subnetIds: pulumi.Output<any>,
+  vpcSecurityGroupIds: pulumi.Output<string>[],
+  username: string,
+  password: pulumi.Output<string>,
+  instanceClass: string,
+  allocatedStorage: number,
+  maxAllocatedStorage: number,
+}
+
 export class RdsPostgres extends pulumi.ComponentResource {
   name: pulumi.Output<string>
   endpoint: pulumi.Output<string>
+  port: pulumi.Output<number>
 
   constructor(name: string, args: RdsPostgresArgs, opts: any) {
     super('custom:aws:RdsPostgres', name, {}, opts)
@@ -128,6 +139,7 @@ export class RdsPostgres extends pulumi.ComponentResource {
 
     this.name = rds.name
     this.endpoint = rds.endpoint
+    this.port = rds.port
 
     this.registerOutputs()
   }
@@ -138,15 +150,19 @@ interface KnativeOperatorArgs {
 }
 
 export class KnativeOperator extends pulumi.ComponentResource {
+  resources: pulumi.Output<{ [key: string]: pulumi.CustomResource; }>
+
   constructor(name: string, args: KnativeOperatorArgs, opts: any) {
     super('custom:k8s:KnativeOperator', name, {}, opts)
 
     const { version } = args
 
     // Install knative operator
-    const knativeOperator = new k8s.yaml.ConfigFile(name, {
-      file: `https://github.com/knative/operator/releases/download/knative-v${version}/operator.yaml`,
+    const knativeOperator = new k8s.yaml.ConfigGroup(name, {
+      files: `https://github.com/knative/operator/releases/download/knative-v${version}/operator.yaml`,
     }, { parent: this })
+
+    this.resources = knativeOperator.resources
 
     this.registerOutputs()
   }
@@ -183,7 +199,7 @@ export class KnativeServing extends pulumi.ComponentResource {
       kind: 'KnativeServing',
       metadata: {
         name: knativeServingName,
-        namespace: knativeServingNamespaceName,
+        namespace: knativeServingNamespace.metadata.name,
       },
       spec: {
         config: { // you can edit all ConfigMaps in knative operator namespace here
@@ -242,7 +258,7 @@ export class KnativeEventing extends pulumi.ComponentResource {
       kind: 'KnativeEventing',
       metadata: {
         name: knativeEventingName,
-        namespace: knativeEventingNamespaceName,
+        namespace: knativeEventingNamespace.metadata.name,
       },
     }, { parent: this })
 
@@ -253,7 +269,7 @@ export class KnativeEventing extends pulumi.ComponentResource {
 }
 
 /**
- * Install Istio using the Operator (i.e. Istio Operator must already be present)
+ * Install Istio using the Helm chart
  */
 export class Istio extends pulumi.ComponentResource {
   id: pulumi.Output<String>
@@ -262,11 +278,38 @@ export class Istio extends pulumi.ComponentResource {
   constructor(name: string, args: any, opts: any) {
     super('custom:k8s:Istio', name, {}, opts)
 
+    const istioSystemNamespaceName = 'istio-system'
+    const istioSystemNamespace = new k8s.core.v1.Namespace(istioSystemNamespaceName, {
+      metadata: { name: istioSystemNamespaceName }
+    }, { parent: this })
+
+    const istioBaseReleaseName = 'istio-base'
+    const istioBaseRelease = new k8s.helm.v3.Release(istioBaseReleaseName, {
+      name: istioBaseReleaseName,
+      namespace: istioSystemNamespace.metadata.name,
+      chart: 'base',
+      repositoryOpts: {
+        repo: 'https://istio-release.storage.googleapis.com/charts',
+      },
+      cleanupOnFail: true,
+    }, { parent: this })
+
+    const istioIstiodReleaseName = 'istiod'
+    const istioIstiodRelease = new k8s.helm.v3.Release(istioIstiodReleaseName, {
+      name: istioIstiodReleaseName,
+      namespace: istioSystemNamespace.metadata.name,
+      chart: 'istiod',
+      repositoryOpts: {
+        repo: 'https://istio-release.storage.googleapis.com/charts',
+      },
+      cleanupOnFail: true,
+    }, { parent: this, dependsOn: [istioBaseRelease] })
+
     const istio = new k8s.apiextensions.CustomResource(name, {
       apiVersion: 'install.istio.io/v1alpha1',
       kind: 'IstioOperator',
       metadata: {
-        namespace: 'istio-system', // created by the operator
+        namespace: istioSystemNamespace.metadata.name,
         name: `${name}-controlplane`
       },
       spec: {
@@ -293,7 +336,7 @@ export class Istio extends pulumi.ComponentResource {
           ]
         }
       }
-    }, { parent: this })
+    }, { parent: this, dependsOn: [istioIstiodRelease] })
 
     this.id = istio.id
     this.name = istio.metadata.name
@@ -307,8 +350,6 @@ export class Istio extends pulumi.ComponentResource {
  */
 interface KnativeHttpsIngressGatewayArgs {
   customDomain: string,
-  appStagingNamespaceName: string,
-  appProdNamespaceName: string,
   knativeHttpsIngressGatewayName: string,
   wildcardCertificateSecretName: string,
 }
@@ -322,8 +363,6 @@ export class KnativeHttpsIngressGateway extends pulumi.ComponentResource {
 
     const {
       customDomain,
-      appStagingNamespaceName,
-      appProdNamespaceName,
       knativeHttpsIngressGatewayName,
       wildcardCertificateSecretName,
     } = args
@@ -456,7 +495,7 @@ interface CertManagerArgs {
   awsRegion: string,
   hostedZoneId: string,
   customDomain: string,
-  eksHash: string,
+  eksHash: pulumi.Output<string>,
   acmeEmail: string,
 }
 
@@ -486,7 +525,7 @@ export class CertManager extends pulumi.ComponentResource {
      * Set up IAM role for cert-manager ServiceAccount
      */
     const certManagerRole = new aws.iam.Role(certManagerRoleName, {
-      name: certManagerRoleName,
+      namePrefix: certManagerRoleName,
       path: '/',
       description: 'cert-manager role',
       assumeRolePolicy: getCertManagerRoleTrustPolicy({
@@ -502,6 +541,7 @@ export class CertManager extends pulumi.ComponentResource {
     // Attach permissions to allow adding records to Route 53 for DNS01 challenge
     const route53AddRecordsPolicyName = 'route-53-add-records-policy'
     const route53AddRecordsPolicy = new aws.iam.Policy(route53AddRecordsPolicyName, {
+      namePrefix: route53AddRecordsPolicyName,
       description: 'allow adding records to Route 53',
       policy: getRoute53AddRecordsPolicy(),
     })
@@ -571,13 +611,13 @@ export class CertManager extends pulumi.ComponentResource {
     }, { parent: this, dependsOn: [certManager] })
 
     // Install net-certmanager-controller deployment
-    const netCertManagerController = new k8s.yaml.ConfigFile('net-certmanager-controller', {
-      file: 'https://github.com/knative/net-certmanager/releases/download/v0.26.0/release.yaml',
+    const netCertManagerController = new k8s.yaml.ConfigGroup('net-certmanager-controller', {
+      files: 'https://github.com/knative/net-certmanager/releases/download/v0.26.0/release.yaml',
     }, { parent: this, dependsOn: [certManager] })
 
     // Install net-nscert-controller component
-    const netNscertController = new k8s.yaml.ConfigFile('net-nscert-controller', {
-      file: 'https://github.com/knative/serving/releases/download/v0.26.0/serving-nscert.yaml',
+    const netNscertController = new k8s.yaml.ConfigGroup('net-nscert-controller', {
+      files: 'https://github.com/knative/serving/releases/download/v0.26.0/serving-nscert.yaml',
     }, { parent: this, dependsOn: [certManager] })
 
     this.registerOutputs()
@@ -630,20 +670,10 @@ export class WildcardCertificate extends pulumi.ComponentResource {
 /**
  * Set up Kube Prometheus Stack (including Prometheus, Grafana, Alert Manager, etc)
  */
- interface KubePrometheusStackArgs {
+interface KubePrometheusStackArgs {
   kubePrometheusStackNamespaceName: string,
   grafanaUser: string,
   grafanaPassword: pulumi.Output<string>,
-}
-
-interface RdsPostgresArgs {
-  subnetIds: string[],
-  vpcSecurityGroupIds: string[],
-  username: string,
-  password: pulumi.Output<string>,
-  instanceClass: string,
-  allocatedStorage: number,
-  maxAllocatedStorage: number,
 }
 
 export class KubePrometheusStack extends pulumi.ComponentResource {
@@ -674,7 +704,7 @@ export class KubePrometheusStack extends pulumi.ComponentResource {
 
     const kubePrometheusStackReleaseName = `${name}`
     const kubePrometheusStack = new k8s.helm.v3.Release(kubePrometheusStackReleaseName, {
-      skipCrds: true, // set `skipCrds: true` if you encounter `error: rendered manifests contain a resource that already exists.`
+      skipCrds: false, // set `skipCrds: true` if you encounter `error: rendered manifests contain a resource that already exists.`
       name: kubePrometheusStackReleaseName,
       namespace: kubePrometheusStackNamespace.metadata.name,
       chart: 'kube-prometheus-stack',
@@ -724,8 +754,8 @@ export class KnativeServiceMonitors extends pulumi.ComponentResource {
 
     // Apply the ServiceMonitors/PodMonitors to collect metrics from Knative
     const serviceMonitorsName = 'service-monitors'
-    const serviceMonitors = new k8s.yaml.ConfigFile(serviceMonitorsName, {
-      file: 'https://raw.githubusercontent.com/knative-sandbox/monitoring/main/servicemonitor.yaml',
+    const serviceMonitors = new k8s.yaml.ConfigGroup(serviceMonitorsName, {
+      files: 'https://raw.githubusercontent.com/knative-sandbox/monitoring/main/servicemonitor.yaml',
     }, { parent: this })
 
     this.registerOutputs()
@@ -738,8 +768,8 @@ export class KnativeGrafanaDashboards extends pulumi.ComponentResource {
 
     // Import Grafana dashboards 
     const grafanaDashboardsName = 'grafana-dashboards'
-    const grafanaDashboards = new k8s.yaml.ConfigFile(grafanaDashboardsName, {
-      file: 'https://raw.githubusercontent.com/knative-sandbox/monitoring/main/grafana/dashboards.yaml',
+    const grafanaDashboards = new k8s.yaml.ConfigGroup(grafanaDashboardsName, {
+      files: 'https://raw.githubusercontent.com/knative-sandbox/monitoring/main/grafana/dashboards.yaml',
     }, { parent: this })
 
     this.registerOutputs()

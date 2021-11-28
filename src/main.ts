@@ -1,45 +1,27 @@
 import * as pulumi from '@pulumi/pulumi'
 import * as aws from '@pulumi/aws'
+import * as awsx from '@pulumi/awsx'
 import * as k8s from '@pulumi/kubernetes'
-import { getQualifiedStackName, pulumiOutputsStore } from './pulumi/helpers'
 import { simpleStore } from './pulumi/store'
 
 const cliExecCtx = simpleStore.getState('cliExecutionContext')
 
 const main = async () => {
+  // console.log('cli execution context', cliExecCtx)
   const config = new pulumi.Config()
 
-  // console.log('cli execution context', cliExecCtx)
-  const organization = cliExecCtx === 'ckc' ? simpleStore.getState('pulumiOrganization') : config.require('pulumi_organization')
   const project = pulumi.getProject()
   const stack = cliExecCtx === 'ckc' ? simpleStore.getState('currentStack') : pulumi.getStack()
-  
-  // HACK: configs are intermittenly not available currently (looks like Pulumi Automation API bug)
-  // Use a workaround to get it from user input and aws cli instead of from Pulumi config
-  const customDomain = cliExecCtx === 'ckc' ? simpleStore.getState('customDomain') : config.require('custom_domain')
-  const awsAccountId = cliExecCtx === 'ckc' ? simpleStore.getState('awsAccountId') : await aws.getCallerIdentity({}).then(current => current.accountId)
-  const awsRegion = cliExecCtx === 'ckc' ? simpleStore.getState('awsRegion') : await aws.getRegion().then(current => current.name)
-  
-  const appStagingNamespaceName = 'staging'
-  const appProdNamespaceName = 'prod'
+
+  const organization = config.require('pulumi_organization')
+  const customDomain = config.require('custom_domain')
+  const { accountId: awsAccountId } = await aws.getCallerIdentity({})
+  const { name: awsRegion } = await aws.getRegion()
+
+  const appStagingNamespaceName = 'app-staging'
+  const appProdNamespaceName = 'app-prod'
   const knativeHttpsIngressGatewayName = 'knative-https-ingress-gateway'
   const kubePrometheusStackNamespaceName = 'kube-prometheus-stack'
-
-  const clusterStackRef = new pulumi.StackReference(getQualifiedStackName(organization, 'cluster'))
-  const dbStagingStackRef = new pulumi.StackReference(getQualifiedStackName(organization, 'db_staging'))
-  const dbProdStackRef = new pulumi.StackReference(getQualifiedStackName(organization, 'db_prod'))
-
-  const getK8sProvider = () => {
-    const kubeconfig = clusterStackRef.getOutput('kubeconfig')
-    const clusterName = clusterStackRef.getOutput('clusterName')
-    return new k8s.Provider(`${clusterName}-provider`, { kubeconfig })
-  }
-
-  if (stack === 'test') {
-    console.log('RUNNING!!!!!')
-    const testStackOutput = { test: 'testing main.ts' }
-    pulumiOutputsStore.set({ testStack: testStackOutput })
-  }
 
   // /**
   //  * Stack: dev
@@ -52,109 +34,93 @@ const main = async () => {
   //     project,
   //     stackEnv: stack,
   //   })
-  //   pulumiOutputsStore.set({ devStack: devStackOutput })
+  // 
+  //   return devStackOutput
   // }
 
   /**
    * Stack: cluster
    */
   if (stack === 'cluster') {
-    const { ClusterStack } = require('./pulumi/stacks/cluster')
+    const { ClusterStack } = await import('./pulumi/stacks/cluster')
     const clusterStackOutput = new ClusterStack('cluster-stack', { project })
-    pulumiOutputsStore.set({ clusterStack: clusterStackOutput })
+    return clusterStackOutput
   }
 
-  /**
-   * Stack: app_ns
-   */
-  if (stack === 'app_ns') {
-    const k8sProvider = getK8sProvider()
-    const { AppNsStack } = require('./pulumi/stacks/app_ns')
-    const appNsStackOutput = new AppNsStack('app-ns-stack', {
-      appStagingNamespaceName,
-      appProdNamespaceName,
-    }, { provider: k8sProvider })
-    pulumiOutputsStore.set({ appNsStack: appNsStackOutput })
-  }
+  const clusterStackRef = new pulumi.StackReference(`${organization}/${project}/cluster`)
+  const kubeconfig = clusterStackRef.getOutput('kubeconfig') as pulumi.Output<any>
+  const k8sProvider = new k8s.Provider('k8s-provider', { kubeconfig })
 
   /**
-   * Stack: cluster_autoscaler
+   * Stack: cluster-autoscaler
    */
-  if (stack === 'cluster_autoscaler') {
-    const clusterName = clusterStackRef.getOutput('clusterName')
-    const clusterOidcProviderId = clusterStackRef.getOutput('clusterOidcProviderId')
-    const eksHash = clusterOidcProviderId.apply(oidcProviderId => oidcProviderId.split('/').slice(-1)[0])
+  if (stack === 'cluster-autoscaler') {
+    const clusterName = clusterStackRef.getOutput('clusterName') as pulumi.Output<string>
+    const eksHash = clusterStackRef.getOutput('eksHash') as pulumi.Output<string>
 
-    const k8sProvider = getK8sProvider()
-    const { ClusterAutoscalerStack } = require('./pulumi/stacks/cluster_autoscaler')
+    const { ClusterAutoscalerStack } = await import('./pulumi/stacks/cluster-autoscaler')
     const clusterAutoscalerStackOutput = new ClusterAutoscalerStack('cluster-autoscaler-stack', {
       awsAccountId,
       awsRegion,
       clusterName,
       eksHash,
     }, { provider: k8sProvider })
-    pulumiOutputsStore.set({ clusterAutoscalerStack: clusterAutoscalerStackOutput })
+    return clusterAutoscalerStackOutput
   }
 
   /**
-   * Stack: knative_operator
+   * Stack: knative-operator
    */
-  if (stack === 'knative_operator') {
+  if (stack === 'knative-operator') {
     const knativeServingVersion = config.require('knative_serving_version')
 
-    const k8sProvider = getK8sProvider()
-    const { KnativeOperatorStack } = require('./pulumi/stacks/knative_operator')
+    const { KnativeOperatorStack } = await import('./pulumi/stacks/knative-operator')
     const knativeOperatorStackOutput = new KnativeOperatorStack('knative-operator-stack', {
       knativeServingVersion,
     }, { provider: k8sProvider })
-    pulumiOutputsStore.set({ knativeOperatorStack: knativeOperatorStackOutput })
+    return knativeOperatorStackOutput
   }
 
   /**
-   * Stack: knative_serving
+   * Stack: knative-serving
    */
-  if (stack === 'knative_serving') {
-    const k8sProvider = getK8sProvider()
-    const { KnativeServingStack } = require('./pulumi/stacks/knative_serving')
+  if (stack === 'knative-serving') {
+    const { KnativeServingStack } = await import('./pulumi/stacks/knative-serving')
     const knativeServingStackOutput = new KnativeServingStack('knative-serving-stack', {
       customDomain,
       knativeHttpsIngressGatewayName,
     }, { provider: k8sProvider })
-    pulumiOutputsStore.set({ knativeServingStack: knativeServingStackOutput })
+    return knativeServingStackOutput
   }
 
   /**
-   * Stack: knative_eventing
+   * Stack: knative-eventing
    */
-  if (stack === 'knative_eventing') {
-    const k8sProvider = getK8sProvider()
-    const { KnativeEventingStack } = require('./pulumi/stacks/knative_eventing')
+  if (stack === 'knative-eventing') {
+    const { KnativeEventingStack } = await import('./pulumi/stacks/knative-eventing')
     const knativeEventingStackOutput = new KnativeEventingStack('knative-eventing-stack', {}, { provider: k8sProvider })
-    pulumiOutputsStore.set({ knativeEventingStack: knativeEventingStackOutput })
+    return knativeEventingStackOutput
   }
 
   /**
-   * Stack: istio_operator
+   * Stack: istio
    */
   if (stack === 'istio') {
-    const k8sProvider = getK8sProvider()
-    const { IstioStack } = require('./pulumi/stacks/istio')
+    const { IstioStack } = await import('./pulumi/stacks/istio')
     const istioStackOutput = new IstioStack('istio-stack', {}, { provider: k8sProvider })
-    pulumiOutputsStore.set({ istioStack: istioStackOutput })
+    return istioStackOutput
   }
 
   /**
-   * Stack: cert_manager
+   * Stack: cert-manager
    */
-  if (stack === 'cert_manager') {
+  if (stack === 'cert-manager') {
     const customDomainZoneId = config.require('custom_domain_zone_id')
     const acmeEmail = config.require('acme_email')
 
-    const clusterOidcProviderId = clusterStackRef.getOutput('clusterOidcProviderId')
-    const eksHash = clusterOidcProviderId.apply(oidcProviderId => oidcProviderId.split('/').slice(-1)[0])
+    const eksHash = clusterStackRef.getOutput('eksHash') as pulumi.Output<string>
 
-    const k8sProvider = getK8sProvider()
-    const { CertManagerStack } = require('./pulumi/stacks/cert_manager')
+    const { CertManagerStack } = await import('./pulumi/stacks/cert-manager')
     const certManagerStackOutput = new CertManagerStack('cert-manager-stack', {
       awsAccountId,
       awsRegion,
@@ -163,33 +129,29 @@ const main = async () => {
       eksHash,
       acmeEmail,
     }, { provider: k8sProvider })
-    pulumiOutputsStore.set({ certManagerStack: certManagerStackOutput })
+    return certManagerStackOutput
   }
 
   /**
-   * Stack: knative_custom_ingress
+   * Stack: knative-custom-ingress
    */
-  if (stack === 'knative_custom_ingress') {
-    const k8sProvider = getK8sProvider()
-    const { KnativeCustomIngressStack } = require('./pulumi/stacks/knative_custom_ingress')
+  if (stack === 'knative-custom-ingress') {
+    const { KnativeCustomIngressStack } = await import('./pulumi/stacks/knative-custom-ingress')
     const knativeCustomIngressStackOutput = new KnativeCustomIngressStack('knative-custom-ingress-stack', {
       customDomain,
-      appStagingNamespaceName,
-      appProdNamespaceName,
       knativeHttpsIngressGatewayName,
     }, { provider: k8sProvider })
-    pulumiOutputsStore.set({ knativeCustomIngressStack: knativeCustomIngressStackOutput })
+    return knativeCustomIngressStackOutput
   }
 
   /**
-   * Stack: kube_prometheus_stack
+   * Stack: kube-prometheus-stack
    */
-  if (stack === 'kube_prometheus_stack') {
+  if (stack === 'kube-prometheus-stack') {
     const grafanaUser = config.require('grafana_user')
     const grafanaPassword = config.requireSecret('grafana_password').apply(password => password)
 
-    const k8sProvider = getK8sProvider()
-    const { KubePrometheusStackStack } = require('./pulumi/stacks/kube_prometheus_stack')
+    const { KubePrometheusStackStack } = await import('./pulumi/stacks/kube-prometheus-stack')
     const kubePrometheusStackStackOutput = new KubePrometheusStackStack('kube-prometheus-stack-stack', {
       customDomain,
       knativeHttpsIngressGatewayName,
@@ -197,70 +159,103 @@ const main = async () => {
       grafanaUser,
       grafanaPassword,
     }, { provider: k8sProvider })
-    pulumiOutputsStore.set({ kubePrometheusStackStack: kubePrometheusStackStackOutput })
+    return kubePrometheusStackStackOutput
   }
 
-
-
-
-
-
-
+  /**
+   * Stack: app-build
+   */
+  if (stack === 'app-build') {
+    const { AppBuildStack } = await import('./pulumi/stacks/app-build')
+    const appBuildStackOutput = new AppBuildStack('app-ns-stack', {
+      project,
+    }, { provider: k8sProvider })
+    return appBuildStackOutput
+  }
 
   /**
-   * Stack: db_staging
-   * Stack: db_prod
+   * Stack: app-ns
    */
-  if (stack === 'db_staging' || stack === 'db_prod') {
+  if (stack === 'app-ns') {
+    const { AppNsStack } = await import('./pulumi/stacks/app-ns')
+    const appNsStackOutput = new AppNsStack('app-ns-stack', {
+      appStagingNamespaceName,
+      appProdNamespaceName,
+    }, { provider: k8sProvider })
+    return appNsStackOutput
+  }
+
+  /**
+   * Stack: db-staging
+   * Stack: db-prod
+   */
+  if (stack === 'db-staging' || stack === 'db-prod') {
     const dbUser = config.require('db_user')
     const dbPassword = config.requireSecret('db_password').apply(password => password)
 
     const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
     const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
-    const sgRdsId = clusterStackRef.getOutput('sgRdsId')
+    const vpc = clusterStackRef.getOutput('vpc') as unknown as awsx.ec2.Vpc
     const vpcPublicSubnetIds = clusterStackRef.getOutput('vpcPublicSubnetIds')
 
-    const k8sProvider = getK8sProvider()
-    const { DbStack } = require('./pulumi/stacks/db')
+    const { DbStack } = await import('./pulumi/stacks/db')
     const dbStackOutput = new DbStack('app-svc-stack', {
       dbUser,
       dbPassword,
       stackEnv,
       appNamespaceName,
-      sgRdsId,
+      vpc,
       vpcPublicSubnetIds,
     }, { provider: k8sProvider })
-    pulumiOutputsStore.set({ dbStack: dbStackOutput })
+    return dbStackOutput
   }
 
   /**
-   * Stack: app_staging
-   * Stack: app_prod
+   * Stack: app-staging
+   * Stack: app-prod
    */
-  if (stack === 'app_staging' || stack === 'app_prod') {
+  if (stack === 'app-staging' || stack === 'app-prod') {
+    const dbUser = config.require('db_user')
+    const dbPassword = config.requireSecret('db_password').apply(password => password)
+
+    const appBuildStackRef = new pulumi.StackReference(`${organization}/${project}/app-build`)
+    const dbStagingStackRef = new pulumi.StackReference(`${organization}/${project}/db-staging`)
+    const dbProdStackRef = new pulumi.StackReference(`${organization}/${project}/db-prod`)
+
+    const appEcrImageUrl = appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string>  
+    const stagingDbName = dbStagingStackRef.getOutput('rdsName') as pulumi.Output<string>  
+    const stagingDbEndpoint = dbStagingStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>  
+    const stagingDbPort = dbStagingStackRef.getOutput('rdsPort') as pulumi.Output<number>  
+    const prodDbName = dbProdStackRef.getOutput('rdsName') as pulumi.Output<string> 
+    const prodDbEndpoint = dbProdStackRef.getOutput('rdsEndpoint') as pulumi.Output<string> 
+    const prodDbPort = dbProdStackRef.getOutput('rdsPort') as pulumi.Output<number> 
+
     const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
     const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
-    const dbSecretStagingName = dbStagingStackRef.getOutput('dbSecretName')
-    const dbSecretProdName = dbProdStackRef.getOutput('dbSecretName')
-    const dbSecretName = stackEnv === 'prod' ? dbSecretProdName : dbSecretStagingName
-
-    const k8sProvider = getK8sProvider()
-    const { AppStack } = require('./pulumi/stacks/app')
+    const dbName = stackEnv === 'prod' ? prodDbName : stagingDbName
+    const dbEndpoint = stackEnv === 'prod' ? prodDbEndpoint : stagingDbEndpoint
+    const dbPort = stackEnv === 'prod' ? prodDbPort : stagingDbPort
+  
+    const { AppStack } = await import('./pulumi/stacks/app')
     const appStackOutput = new AppStack('app-stack', {
       project,
       stackEnv,
+      imageUrl: appEcrImageUrl,
       customDomain,
       appNamespaceName,
-      dbSecretName,
+      dbUser,
+      dbName,
+      dbPassword,
+      dbEndpoint,
+      dbPort,
       knativeHttpsIngressGatewayName,
     }, { provider: k8sProvider })
-    pulumiOutputsStore.set({ appStack: appStackOutput })
+    return appStackOutput
   }
 
   return {
     project,
     stack,
-    ...pulumiOutputsStore.get(),
   }
 }
 

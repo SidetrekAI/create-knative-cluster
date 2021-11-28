@@ -1,6 +1,17 @@
-import { InlineProgramArgs, LocalWorkspace, PulumiFn } from '@pulumi/pulumi/automation'
-import { PulumiConfig, PulumiPlugin } from '../types'
+import * as ora from 'ora'
+import {
+  InlineProgramArgs,
+  LocalWorkspace,
+  ProjectSettings,
+  Stack,
+  PulumiFn,
+  ConfigMap,
+} from '@pulumi/pulumi/automation'
+import { PulumiPlugin } from '../types'
 import { getColor } from '../helpers'
+import * as logUpdate from 'log-update'
+
+const cwd = process.cwd()
 
 const infoColor = getColor('info')
 const successColor = getColor('success')
@@ -12,17 +23,29 @@ export type CreatePulumiFn = (inputs: any[]) => PulumiFn
 export interface PulumiProgramArgs {
   createPulumiProgram: CreatePulumiFn,
   plugins?: PulumiPlugin[],
-  configs?: PulumiConfig[],
+  configMap?: ConfigMap,
 }
 
-export interface PulumiStackOptions {
+export interface PulumiStackUpOptions {
   inputs?: any[],
+  beforeUp?: (opts: PulumiAutomationHookOptions) => any,
+  afterUp?: (opts: PulumiAutomationHookOptions) => any,
+}
+
+export interface PulumiStackDestroyOptions {
+  remove?: boolean,
+  beforeDestroy?: (opts: PulumiAutomationHookOptions) => any,
+  afterDestroy?: (opts: PulumiAutomationHookOptions) => any,
 }
 
 export interface PulumiAutomationOptions {
-  globalConfigs?: PulumiConfig[],
-  beforePulumiRun?: (stack: string) => any,
-  afterPulumiRun?: (stack: string) => any,
+  globalConfigMap?: ConfigMap,
+  beforePulumiRun?: (opts: PulumiAutomationHookOptions) => any,
+  afterPulumiRun?: (opts: PulumiAutomationHookOptions) => any,
+}
+
+export interface PulumiAutomationHookOptions {
+  [key: string]: any,
 }
 
 export class PulumiAutomation {
@@ -34,32 +57,61 @@ export class PulumiAutomation {
     this.options = options
   }
 
-  async stackUp(stack: string, programArgs: PulumiProgramArgs, options?: PulumiStackOptions) {
-    const { globalConfigs = [], beforePulumiRun, afterPulumiRun } = this.options
-    const { createPulumiProgram, plugins = [], configs = [] } = programArgs
-    const { inputs = [] } = options || {}
+  async stackUp(stackName: string, programArgs: PulumiProgramArgs, options?: PulumiStackUpOptions): Promise<any> {
+    const { globalConfigMap = {}, beforePulumiRun, afterPulumiRun } = this.options
+    const { createPulumiProgram, plugins = [], configMap = {} } = programArgs
+    const { inputs = [], beforeUp, afterUp } = options || {}
 
     const program = createPulumiProgram(inputs)
 
-    beforePulumiRun && beforePulumiRun(stack)
+    beforePulumiRun && beforePulumiRun({ stackName, configMap })
 
-    const pulumiRunOutputs = await pulumiRun({
+    beforeUp && beforeUp({ stackName })
+
+    const stackOutputs = await pulumiRun({
       projectName: this.project,
-      stackName: stack,
+      stackName,
       program,
       plugins,
-      configs: [...configs, ...globalConfigs],
-      options: { destroy: false },
+      configMap: { ...configMap, ...globalConfigMap },
+      options: { destroy: false, remove: false },
     })
 
-    afterPulumiRun && afterPulumiRun(stack)
+    afterUp && afterUp({ stackName })
 
-    return pulumiRunOutputs
+    afterPulumiRun && afterPulumiRun({ stackName, configMap })
+
+    return stackOutputs
+  }
+
+  async stackDestroy(stackName: string, options?: PulumiStackDestroyOptions): Promise<any> {
+    const { beforePulumiRun, afterPulumiRun } = this.options
+    const { remove = true, beforeDestroy, afterDestroy } = options || {}
+
+    beforePulumiRun && beforePulumiRun({ stackName })
+
+    beforeDestroy && beforeDestroy({ stackName })
+
+    const stackOutputs = await pulumiRun({
+      projectName: this.project,
+      stackName,
+      program: async () => { },
+      plugins: [],
+      configMap: {},
+      options: { destroy: true, remove },
+    })
+
+    afterDestroy && afterDestroy({ stackName })
+
+    afterPulumiRun && afterPulumiRun({ stackName, remove })
+
+    return stackOutputs
   }
 }
 
 export interface PulumiRunOptions {
-  destroy?: boolean,
+  destroy: boolean,
+  remove: boolean,
 }
 
 export interface PulumiRunArgs {
@@ -67,8 +119,8 @@ export interface PulumiRunArgs {
   stackName: string,
   program: PulumiFn,
   plugins?: PulumiPlugin[],
-  configs?: PulumiConfig[],
-  options?: PulumiRunOptions,
+  configMap?: ConfigMap,
+  options: PulumiRunOptions,
 }
 
 export const pulumiRun = async ({
@@ -76,58 +128,86 @@ export const pulumiRun = async ({
   stackName,
   program,
   plugins,
-  configs,
+  configMap = {},
   options: {
-    destroy = false,
-  } = {},
+    destroy,
+    remove,
+  },
 }: PulumiRunArgs) => {
   try {
-    const args: InlineProgramArgs = {
-      projectName,
-      stackName,
-      program,
+    const spinner = ora().start(infoColor(`Initializing '${stackName}' stack...`))
+    const projectSettings: ProjectSettings = {
+      name: projectName,
+      runtime: 'nodejs',
     }
-    const stack = await LocalWorkspace.createOrSelectStack(args)
-    console.info(successColor(`Successfully initialized '${stackName}' stack\n`))
+    const ws = await LocalWorkspace.create({
+      projectSettings,
+      workDir: cwd,
+      program,
+    })
+    const stack = await Stack.createOrSelect(stackName, ws)
+    spinner.succeed(successColor(`Stack '${stackName}' initialized`))
+
+    const handleOutput = (out: string) => logUpdate(`\n${out}`)
+
+    if (destroy) {
+      // Refresh the stack in case there are manual pre-run commands
+      spinner.start(infoColor(`Refreshing '${stackName}' stack...`))
+      await stack.refresh({ onOutput: handleOutput })
+      logUpdate.clear()
+      spinner.succeed(successColor(`Refreshed '${stackName}' stack`))
+
+      spinner.start(infoColor(`Destroying '${stackName}' stack...`))
+      const destroyRes = await stack.destroy({ onOutput: handleOutput })
+      logUpdate.clear()
+      spinner.succeed(successColor(`Destroyed '${stackName}' stack`))
+
+      if (remove) {
+        spinner.start(infoColor(`Removing '${stackName}' stack...`))
+        ws.removeStack(stackName)
+        spinner.succeed(successColor(`Removed '${stackName}' stack`))
+      }
+
+      return destroyRes.summary
+    }
 
     if (Array.isArray(plugins) && plugins.length > 0) {
-      console.info(infoColor('Installing plugins...\n'))
+      spinner.start(infoColor('Installing plugins...'))
       const pluginPromises = plugins.map(({ name, version, kind }) => {
         return stack.workspace.installPlugin(name, version, kind)
       })
       await Promise.all(pluginPromises)
-      console.info(successColor('Plugins installed\n'))
+      spinner.succeed(successColor('Plugins installed'))
     }
 
-    console.log('configs inside Pulumi Run...', configs)
-    if (Array.isArray(configs) && configs.length > 0) {
-      console.info(infoColor('Setting up config...\n'))
-      const configPromises = configs.map(({ key, configValue }) => {
-        return stack.setConfig(key, configValue)
-      })
-      await Promise.all(configPromises)
-      console.info(successColor('Config set\n'))
-    }
+    // spinner.start(infoColor('Setting up config...'))
+    await stack.setAllConfig(configMap)
+    // spinner.succeed(successColor('Config set'))
 
-    console.info(infoColor(`Refreshing '${stackName}' stack...\n`))
-    await stack.refresh({ onOutput: console.info })
-    console.info(successColor('Refresh complete\n'))
+    /**
+     * GOTCHA:
+     *    This refresh steps makes config setting unreliable.
+     *    Keep getting aws:region not available until this is commented out.
+     */
+    // console.info(infoColor(`Refreshing '${stackName}' stack...`))
+    // await stack.refresh({ onOutput: console.info })
+    // console.info(successColor('Refresh complete'))
 
-    if (destroy) {
-      console.info(infoColor(`Destroying stack...\n`))
-      await stack.destroy({ onOutput: console.info })
-      console.info(successColor('Stack destroy complete\n'))
-      process.exit(0)
-    }
-
-    console.info(infoColor(`Updating '${stackName}' stack...\n`))
-    const upRes = await stack.up({ onOutput: console.info })
-    console.log(successColor(`Update summary for '${stackName}' stack: \n${JSON.stringify(upRes.summary.resourceChanges, null, 4)}\n`))
-    console.log(outputColor(`Outputs: \n${JSON.stringify(upRes.outputs, null, 4)}\n`))
+    spinner.start(infoColor(`Updating '${stackName}' stack...`))
+    const upRes = await stack.up({ onOutput: handleOutput })
+    logUpdate.clear()
+    spinner.succeed(successColor(`Successfully updated '${stackName}' stack`))
+    // console.log(successColor(`\nUpdate summary for '${stackName}' stack: \n${JSON.stringify(upRes.summary.resourceChanges, null, 4)}`))
+    // console.log(outputColor(`\nOutputs: \n${JSON.stringify(upRes.outputs, null, 4)}`))
     return upRes.outputs
   } catch (err) {
     console.log(errorColor(err))
-    process.exitCode = 1
-    return {}
+
+    // Add logic to destroy the stack on error?
+    // Stack might be updating, then it needs to be cancelled first
+    // Cloud op might be hanging - this would require export/import fix to remove pending op
+    // Remove the stack altogether?
+
+    process.exit(1)
   }
 }

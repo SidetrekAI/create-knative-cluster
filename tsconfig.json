@@ -3,7 +3,7 @@
     "strict": true,
     "rootDir": "src",
     "outDir": "bin",
-    "target": "es2016",
+    "target": "es2018",
     "module": "commonjs",
     "moduleResolution": "node",
     "sourceMap": true,

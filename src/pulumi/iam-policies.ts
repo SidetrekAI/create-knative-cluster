@@ -30,7 +30,7 @@ export const getCertManagerRoleTrustPolicy = ({
 }: {
   awsRegion: string,
   awsAccountId: string,
-  eksHash: string,
+  eksHash: pulumi.Output<string>,
   namespace: string,
   serviceAccountName: string,
 }) => {
@@ -85,7 +85,7 @@ export const getClusterAutoscalerRoleTrustPolicy = ({
 }: {
   awsRegion: string,
   awsAccountId: string,
-  eksHash: string,
+  eksHash: pulumi.Output<string>,
   namespace: string,
   serviceAccountName: string,
 }) => {

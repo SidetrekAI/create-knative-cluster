@@ -1,10 +1,8 @@
 import * as pulumi from '@pulumi/pulumi'
-import { WildcardCertificate, KnativeHttpsIngressGateway } from '../component_resources'
+import { WildcardCertificate, KnativeHttpsIngressGateway } from '../component-resources'
 
 export interface KnativeCustomIngressStackArgs {
   customDomain: string,
-  appStagingNamespaceName: string,
-  appProdNamespaceName: string,
   knativeHttpsIngressGatewayName: string,
 }
 
@@ -14,8 +12,6 @@ export class KnativeCustomIngressStack extends pulumi.ComponentResource {
 
     const {
       customDomain,
-      appStagingNamespaceName,
-      appProdNamespaceName,
       knativeHttpsIngressGatewayName,
     } = args
 
@@ -40,8 +36,6 @@ export class KnativeCustomIngressStack extends pulumi.ComponentResource {
      */
     const knativeHttpsIngressGateway = new KnativeHttpsIngressGateway(knativeHttpsIngressGatewayName, {
       customDomain,
-      appStagingNamespaceName,
-      appProdNamespaceName,
       knativeHttpsIngressGatewayName,
       wildcardCertificateSecretName,
     }, { parent: this })

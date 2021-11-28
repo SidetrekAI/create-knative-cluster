@@ -1,0 +1,436 @@
+{
+    "version": 3,
+    "deployment": {
+        "manifest": {
+            "time": "2021-11-27T14:09:32.034576-08:00",
+            "magic": "980c5fd9ef67d340d4f33030c3faaa1d3710796e2e8c49f7536624c929d2ecf8",
+            "version": "v3.18.1"
+        },
+        "secrets_providers": {
+            "type": "service",
+            "state": {
+                "url": "https://api.pulumi.com",
+                "owner": "seunggs",
+                "project": "create-knative-cluster",
+                "stack": "knative_eventing"
+            }
+        },
+        "resources": [
+            {
+                "urn": "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:pulumi:Stack::create-knative-cluster-knative_eventing",
+                "custom": false,
+                "type": "pulumi:pulumi:Stack",
+                "outputs": {
+                    "urn": "urn:pulumi:knative_eventing::create-knative-cluster::custom:stack:KnativeEventingStack::knative-eventing-stack"
+                }
+            },
+            {
+                "urn": "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:providers:aws::default_4_27_1",
+                "custom": true,
+                "id": "c44aa593-7093-447d-b41d-1e6abf810fb6",
+                "type": "pulumi:providers:aws",
+                "inputs": {
+                    "region": "us-west-1",
+                    "version": "4.27.1"
+                },
+                "outputs": {
+                    "region": "us-west-1",
+                    "version": "4.27.1"
+                }
+            },
+            {
+                "urn": "urn:pulumi:knative_eventing::create-knative-cluster::custom:stack:KnativeEventingStack::knative-eventing-stack",
+                "custom": false,
+                "type": "custom:stack:KnativeEventingStack",
+                "parent": "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:pulumi:Stack::create-knative-cluster-knative_eventing"
+            },
+            {
+                "urn": "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:providers:pulumi::default",
+                "custom": true,
+                "id": "34555eb2-d2e3-48af-afcb-d7585a165722",
+                "type": "pulumi:providers:pulumi"
+            },
+            {
+                "urn": "urn:pulumi:knative_eventing::create-knative-cluster::custom:stack:KnativeEventingStack$custom:k8s:KnativeEventing::knative-eventing",
+                "custom": false,
+                "type": "custom:k8s:KnativeEventing",
+                "parent": "urn:pulumi:knative_eventing::create-knative-cluster::custom:stack:KnativeEventingStack::knative-eventing-stack"
+            },
+            {
+                "urn": "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:pulumi:StackReference::seunggs/create-knative-cluster/cluster",
+                "custom": true,
+                "id": "seunggs/create-knative-cluster/cluster",
+                "type": "pulumi:pulumi:StackReference",
+                "inputs": {
+                    "name": "seunggs/create-knative-cluster/cluster"
+                },
+                "outputs": {
+                    "name": "seunggs/create-knative-cluster/cluster",
+                    "outputs": {
+                        "clusterName": "create-knative-cluster-cluster",
+                        "clusterOidcProviderArn": "arn:aws:iam::447632895027:oidc-provider/oidc.eks.us-west-1.amazonaws.com/id/E1AAD4BD9B4D6F1EF3BC90842C41FE8B",
+                        "clusterOidcProviderId": "arn:aws:iam::447632895027:oidc-provider/oidc.eks.us-west-1.amazonaws.com/id/E1AAD4BD9B4D6F1EF3BC90842C41FE8B",
+                        "clusterOidcProviderUrl": "oidc.eks.us-west-1.amazonaws.com/id/E1AAD4BD9B4D6F1EF3BC90842C41FE8B",
+                        "eksHash": "E1AAD4BD9B4D6F1EF3BC90842C41FE8B",
+                        "kubeconfig": {
+                            "apiVersion": "v1",
+                            "clusters": [
+                                {
+                                    "cluster": {
+                                        "certificate-authority-data": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM1ekNDQWMrZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJeE1URXlOekl5TURFek4xb1hEVE14TVRFeU5USXlNREV6TjFvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTEZaCkU0SVd5R3JTeUorNTRqYXZsMWJIVFRqKzRPeUI2S0F3Q01DbGtHR2tRS1JuY1hBNlJEVWxVcnpWOG9JVnc5V1AKNEcvaW81bHpoYS9zSVQxRWUwNXgyM1JpY0JhN2dXMXpqb2dkbW1YVC95aWtzRGJ2WEorZGZVaHA1UEZQK2RrNQowSW5pSGwrL3M4V2lrZ3FLSU5nV3lVeVRUWmtHSGljdlE0NVR5Wkd2b2RWSUNZZkI2cUYybm1vd1BWOEpRZEY5Cll3WUMyWm83engvRUpJWGw2ZEVpdFh3eWtZTGx0UTZJZEVueGZTRlN3VW5XWExMNEJmNkZET1V5SS8vK2laVksKaS9GU1lkd2VsK3NsakpyQWFaM0c5RXRyK1gyT0xxRE54Z1lFNC9peFVpWUpOc0J4YXlESHhTdFNLb09aMFVLUgphQnJMajJqL29HeVlDYlg3RmswQ0F3RUFBYU5DTUVBd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZEdW96R1c3aFh3SExDeUFXMHRiSU1tREUrTVdNQTBHQ1NxR1NJYjMKRFFFQkN3VUFBNElCQVFDWE04TkxlSDNaRnNjaCtpaVJxVGRoZlV2Q2Y3RkxVNWNsMWlRYnRUc0RadmxPTk84NQpWWW9uOERIOEZVQ0o0YkdkelVDUWRFTkdOZXJFZk1FSGE2REc4K3NsU0VieURFdXNLWlM0cGhsMmhVditzc3d4CnZmUlN0b1JNOVlqYk4rWHdrUk1wcFpxMlM4R3NwUFlXVzFlalNmbzYzMVlhUDU1R2NtYnRGa1dzeS9kVzJDRFQKVU54YlgwM2Z0dTFPU0g1NWRzYXFJaDVUMHRzN0E3eGtnTjV6eVFIM05hMHdFNW9lOEtteWJZMGdRQ0dEUXUrLwo1V0g5TzAzSVJZWmRFR0htekxRYU9seUpSV2YwTEFiWWhTeE5FTjhkMlJBejhLTStVSUU1SXM4MWhlcWRnRk5vCms4OXM1RndOdWFhNEJlMjF6RWpsRk8ybnJobkd3eUl5eU1mOAotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
+                                        "server": "https://E1AAD4BD9B4D6F1EF3BC90842C41FE8B.gr7.us-west-1.eks.amazonaws.com"
+                                    },
+                                    "name": "kubernetes"
+                                }
+                            ],
+                            "contexts": [
+                                {
+                                    "context": {
+                                        "cluster": "kubernetes",
+                                        "user": "aws"
+                                    },
+                                    "name": "aws"
+                                }
+                            ],
+                            "current-context": "aws",
+                            "kind": "Config",
+                            "users": [
+                                {
+                                    "name": "aws",
+                                    "user": {
+                                        "exec": {
+                                            "apiVersion": "client.authentication.k8s.io/v1alpha1",
+                                            "args": [
+                                                "eks",
+                                                "get-token",
+                                                "--cluster-name",
+                                                "create-knative-cluster-cluster"
+                                            ],
+                                            "command": "aws"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "urn": "urn:pulumi:cluster::create-knative-cluster::custom:stack:ClusterStack::cluster-stack",
+                        "vpc": {
+                            "id": "vpc-0df8cc4cc62fca113",
+                            "urn": "urn:pulumi:cluster::create-knative-cluster::awsx:x:ec2:Vpc::vpc",
+                            "vpc": {
+                                "arn": "arn:aws:ec2:us-west-1:447632895027:vpc/vpc-0df8cc4cc62fca113",
+                                "assignGeneratedIpv6CidrBlock": false,
+                                "cidrBlock": "10.0.0.0/16",
+                                "defaultNetworkAclId": "acl-07cc6965f6a7933de",
+                                "defaultRouteTableId": "rtb-044d68c61d71b5bba",
+                                "defaultSecurityGroupId": "sg-025c255003e00eb4f",
+                                "dhcpOptionsId": "dopt-2877ae4e",
+                                "enableClassiclink": false,
+                                "enableClassiclinkDnsSupport": false,
+                                "enableDnsHostnames": true,
+                                "enableDnsSupport": true,
+                                "id": "vpc-0df8cc4cc62fca113",
+                                "instanceTenancy": "default",
+                                "ipv6AssociationId": "",
+                                "ipv6CidrBlock": "",
+                                "mainRouteTableId": "rtb-044d68c61d71b5bba",
+                                "ownerId": "447632895027",
+                                "tags": {},
+                                "tagsAll": {},
+                                "urn": "urn:pulumi:cluster::create-knative-cluster::awsx:x:ec2:Vpc$aws:ec2/vpc:Vpc::vpc"
+                            }
+                        },
+                        "vpcId": "vpc-0df8cc4cc62fca113",
+                        "vpcPublicSubnetIds": [
+                            "subnet-0f7971cf8b6feb6d2",
+                            "subnet-0ed9aa80775aff6d8"
+                        ]
+                    },
+                    "secretOutputNames": []
+                },
+                "parent": "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:pulumi:Stack::create-knative-cluster-knative_eventing",
+                "external": true,
+                "provider": "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:providers:pulumi::default::34555eb2-d2e3-48af-afcb-d7585a165722"
+            },
+            {
+                "urn": "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:providers:kubernetes::k8s-provider",
+                "custom": true,
+                "id": "a9f41862-9706-4e6b-8abe-5ee8800dde25",
+                "type": "pulumi:providers:kubernetes",
+                "inputs": {
+                    "kubeconfig": {
+                        "apiVersion": "v1",
+                        "clusters": [
+                            {
+                                "cluster": {
+                                    "certificate-authority-data": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM1ekNDQWMrZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJeE1URXlOekl5TURFek4xb1hEVE14TVRFeU5USXlNREV6TjFvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTEZaCkU0SVd5R3JTeUorNTRqYXZsMWJIVFRqKzRPeUI2S0F3Q01DbGtHR2tRS1JuY1hBNlJEVWxVcnpWOG9JVnc5V1AKNEcvaW81bHpoYS9zSVQxRWUwNXgyM1JpY0JhN2dXMXpqb2dkbW1YVC95aWtzRGJ2WEorZGZVaHA1UEZQK2RrNQowSW5pSGwrL3M4V2lrZ3FLSU5nV3lVeVRUWmtHSGljdlE0NVR5Wkd2b2RWSUNZZkI2cUYybm1vd1BWOEpRZEY5Cll3WUMyWm83engvRUpJWGw2ZEVpdFh3eWtZTGx0UTZJZEVueGZTRlN3VW5XWExMNEJmNkZET1V5SS8vK2laVksKaS9GU1lkd2VsK3NsakpyQWFaM0c5RXRyK1gyT0xxRE54Z1lFNC9peFVpWUpOc0J4YXlESHhTdFNLb09aMFVLUgphQnJMajJqL29HeVlDYlg3RmswQ0F3RUFBYU5DTUVBd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZEdW96R1c3aFh3SExDeUFXMHRiSU1tREUrTVdNQTBHQ1NxR1NJYjMKRFFFQkN3VUFBNElCQVFDWE04TkxlSDNaRnNjaCtpaVJxVGRoZlV2Q2Y3RkxVNWNsMWlRYnRUc0RadmxPTk84NQpWWW9uOERIOEZVQ0o0YkdkelVDUWRFTkdOZXJFZk1FSGE2REc4K3NsU0VieURFdXNLWlM0cGhsMmhVditzc3d4CnZmUlN0b1JNOVlqYk4rWHdrUk1wcFpxMlM4R3NwUFlXVzFlalNmbzYzMVlhUDU1R2NtYnRGa1dzeS9kVzJDRFQKVU54YlgwM2Z0dTFPU0g1NWRzYXFJaDVUMHRzN0E3eGtnTjV6eVFIM05hMHdFNW9lOEtteWJZMGdRQ0dEUXUrLwo1V0g5TzAzSVJZWmRFR0htekxRYU9seUpSV2YwTEFiWWhTeE5FTjhkMlJBejhLTStVSUU1SXM4MWhlcWRnRk5vCms4OXM1RndOdWFhNEJlMjF6RWpsRk8ybnJobkd3eUl5eU1mOAotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
+                                    "server": "https://E1AAD4BD9B4D6F1EF3BC90842C41FE8B.gr7.us-west-1.eks.amazonaws.com"
+                                },
+                                "name": "kubernetes"
+                            }
+                        ],
+                        "contexts": [
+                            {
+                                "context": {
+                                    "cluster": "kubernetes",
+                                    "user": "aws"
+                                },
+                                "name": "aws"
+                            }
+                        ],
+                        "current-context": "aws",
+                        "kind": "Config",
+                        "users": [
+                            {
+                                "name": "aws",
+                                "user": {
+                                    "exec": {
+                                        "apiVersion": "client.authentication.k8s.io/v1alpha1",
+                                        "args": [
+                                            "eks",
+                                            "get-token",
+                                            "--cluster-name",
+                                            "create-knative-cluster-cluster"
+                                        ],
+                                        "command": "aws"
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "version": "3.9.0"
+                },
+                "outputs": {
+                    "kubeconfig": {
+                        "apiVersion": "v1",
+                        "clusters": [
+                            {
+                                "cluster": {
+                                    "certificate-authority-data": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUM1ekNDQWMrZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJeE1URXlOekl5TURFek4xb1hEVE14TVRFeU5USXlNREV6TjFvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTEZaCkU0SVd5R3JTeUorNTRqYXZsMWJIVFRqKzRPeUI2S0F3Q01DbGtHR2tRS1JuY1hBNlJEVWxVcnpWOG9JVnc5V1AKNEcvaW81bHpoYS9zSVQxRWUwNXgyM1JpY0JhN2dXMXpqb2dkbW1YVC95aWtzRGJ2WEorZGZVaHA1UEZQK2RrNQowSW5pSGwrL3M4V2lrZ3FLSU5nV3lVeVRUWmtHSGljdlE0NVR5Wkd2b2RWSUNZZkI2cUYybm1vd1BWOEpRZEY5Cll3WUMyWm83engvRUpJWGw2ZEVpdFh3eWtZTGx0UTZJZEVueGZTRlN3VW5XWExMNEJmNkZET1V5SS8vK2laVksKaS9GU1lkd2VsK3NsakpyQWFaM0c5RXRyK1gyT0xxRE54Z1lFNC9peFVpWUpOc0J4YXlESHhTdFNLb09aMFVLUgphQnJMajJqL29HeVlDYlg3RmswQ0F3RUFBYU5DTUVBd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZEdW96R1c3aFh3SExDeUFXMHRiSU1tREUrTVdNQTBHQ1NxR1NJYjMKRFFFQkN3VUFBNElCQVFDWE04TkxlSDNaRnNjaCtpaVJxVGRoZlV2Q2Y3RkxVNWNsMWlRYnRUc0RadmxPTk84NQpWWW9uOERIOEZVQ0o0YkdkelVDUWRFTkdOZXJFZk1FSGE2REc4K3NsU0VieURFdXNLWlM0cGhsMmhVditzc3d4CnZmUlN0b1JNOVlqYk4rWHdrUk1wcFpxMlM4R3NwUFlXVzFlalNmbzYzMVlhUDU1R2NtYnRGa1dzeS9kVzJDRFQKVU54YlgwM2Z0dTFPU0g1NWRzYXFJaDVUMHRzN0E3eGtnTjV6eVFIM05hMHdFNW9lOEtteWJZMGdRQ0dEUXUrLwo1V0g5TzAzSVJZWmRFR0htekxRYU9seUpSV2YwTEFiWWhTeE5FTjhkMlJBejhLTStVSUU1SXM4MWhlcWRnRk5vCms4OXM1RndOdWFhNEJlMjF6RWpsRk8ybnJobkd3eUl5eU1mOAotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
+                                    "server": "https://E1AAD4BD9B4D6F1EF3BC90842C41FE8B.gr7.us-west-1.eks.amazonaws.com"
+                                },
+                                "name": "kubernetes"
+                            }
+                        ],
+                        "contexts": [
+                            {
+                                "context": {
+                                    "cluster": "kubernetes",
+                                    "user": "aws"
+                                },
+                                "name": "aws"
+                            }
+                        ],
+                        "current-context": "aws",
+                        "kind": "Config",
+                        "users": [
+                            {
+                                "name": "aws",
+                                "user": {
+                                    "exec": {
+                                        "apiVersion": "client.authentication.k8s.io/v1alpha1",
+                                        "args": [
+                                            "eks",
+                                            "get-token",
+                                            "--cluster-name",
+                                            "create-knative-cluster-cluster"
+                                        ],
+                                        "command": "aws"
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "version": "3.9.0"
+                },
+                "parent": "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:pulumi:Stack::create-knative-cluster-knative_eventing",
+                "dependencies": [
+                    "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:pulumi:StackReference::seunggs/create-knative-cluster/cluster"
+                ],
+                "propertyDependencies": {
+                    "kubeconfig": [
+                        "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:pulumi:StackReference::seunggs/create-knative-cluster/cluster"
+                    ]
+                }
+            },
+            {
+                "urn": "urn:pulumi:knative_eventing::create-knative-cluster::custom:stack:KnativeEventingStack$custom:k8s:KnativeEventing$kubernetes:core/v1:Namespace::knative-eventing",
+                "custom": true,
+                "id": "knative-eventing",
+                "type": "kubernetes:core/v1:Namespace",
+                "inputs": {
+                    "apiVersion": "v1",
+                    "kind": "Namespace",
+                    "metadata": {
+                        "labels": {
+                            "app.kubernetes.io/managed-by": "pulumi"
+                        },
+                        "name": "knative-eventing"
+                    }
+                },
+                "outputs": {
+                    "__initialApiVersion": "v1",
+                    "__inputs": {
+                        "apiVersion": "v1",
+                        "kind": "Namespace",
+                        "metadata": {
+                            "labels": {
+                                "app.kubernetes.io/managed-by": "pulumi"
+                            },
+                            "name": "knative-eventing"
+                        }
+                    },
+                    "apiVersion": "v1",
+                    "kind": "Namespace",
+                    "metadata": {
+                        "annotations": {
+                            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Namespace\",\"metadata\":{\"labels\":{\"app.kubernetes.io/managed-by\":\"pulumi\"},\"name\":\"knative-eventing\"}}\n"
+                        },
+                        "creationTimestamp": "2021-11-27T22:09:31Z",
+                        "labels": {
+                            "app.kubernetes.io/managed-by": "pulumi",
+                            "kubernetes.io/metadata.name": "knative-eventing"
+                        },
+                        "managedFields": [
+                            {
+                                "apiVersion": "v1",
+                                "fieldsType": "FieldsV1",
+                                "fieldsV1": {
+                                    "f:metadata": {
+                                        "f:annotations": {
+                                            ".": {},
+                                            "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                                        },
+                                        "f:labels": {
+                                            ".": {},
+                                            "f:app.kubernetes.io/managed-by": {},
+                                            "f:kubernetes.io/metadata.name": {}
+                                        }
+                                    }
+                                },
+                                "manager": "pulumi-resource-kubernetes",
+                                "operation": "Update",
+                                "time": "2021-11-27T22:09:31Z"
+                            }
+                        ],
+                        "name": "knative-eventing",
+                        "resourceVersion": "1765",
+                        "uid": "7be00814-42fa-4fe0-8921-85c44ba7301e"
+                    },
+                    "spec": {
+                        "finalizers": [
+                            "kubernetes"
+                        ]
+                    },
+                    "status": {
+                        "phase": "Active"
+                    }
+                },
+                "parent": "urn:pulumi:knative_eventing::create-knative-cluster::custom:stack:KnativeEventingStack$custom:k8s:KnativeEventing::knative-eventing",
+                "provider": "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:providers:kubernetes::k8s-provider::a9f41862-9706-4e6b-8abe-5ee8800dde25",
+                "propertyDependencies": {
+                    "apiVersion": null,
+                    "kind": null,
+                    "metadata": null
+                }
+            },
+            {
+                "urn": "urn:pulumi:knative_eventing::create-knative-cluster::custom:stack:KnativeEventingStack$custom:k8s:KnativeEventing$kubernetes:operator.knative.dev/v1alpha1:KnativeEventing::knative-eventing",
+                "custom": true,
+                "id": "knative-eventing/knative-eventing",
+                "type": "kubernetes:operator.knative.dev/v1alpha1:KnativeEventing",
+                "inputs": {
+                    "apiVersion": "operator.knative.dev/v1alpha1",
+                    "kind": "KnativeEventing",
+                    "metadata": {
+                        "labels": {
+                            "app.kubernetes.io/managed-by": "pulumi"
+                        },
+                        "name": "knative-eventing",
+                        "namespace": "knative-eventing"
+                    }
+                },
+                "outputs": {
+                    "__initialApiVersion": "operator.knative.dev/v1alpha1",
+                    "__inputs": {
+                        "apiVersion": "operator.knative.dev/v1alpha1",
+                        "kind": "KnativeEventing",
+                        "metadata": {
+                            "labels": {
+                                "app.kubernetes.io/managed-by": "pulumi"
+                            },
+                            "name": "knative-eventing",
+                            "namespace": "knative-eventing"
+                        }
+                    },
+                    "apiVersion": "operator.knative.dev/v1alpha1",
+                    "kind": "KnativeEventing",
+                    "metadata": {
+                        "annotations": {
+                            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"operator.knative.dev/v1alpha1\",\"kind\":\"KnativeEventing\",\"metadata\":{\"labels\":{\"app.kubernetes.io/managed-by\":\"pulumi\"},\"name\":\"knative-eventing\",\"namespace\":\"knative-eventing\"}}\n"
+                        },
+                        "creationTimestamp": "2021-11-27T22:09:32Z",
+                        "finalizers": [
+                            "knativeeventings.operator.knative.dev"
+                        ],
+                        "generation": 1,
+                        "labels": {
+                            "app.kubernetes.io/managed-by": "pulumi"
+                        },
+                        "managedFields": [
+                            {
+                                "apiVersion": "operator.knative.dev/v1alpha1",
+                                "fieldsType": "FieldsV1",
+                                "fieldsV1": {
+                                    "f:metadata": {
+                                        "f:finalizers": {
+                                            ".": {},
+                                            "v:\"knativeeventings.operator.knative.dev\"": {}
+                                        }
+                                    }
+                                },
+                                "manager": "operator",
+                                "operation": "Update",
+                                "time": "2021-11-27T22:09:32Z"
+                            },
+                            {
+                                "apiVersion": "operator.knative.dev/v1alpha1",
+                                "fieldsType": "FieldsV1",
+                                "fieldsV1": {
+                                    "f:metadata": {
+                                        "f:annotations": {
+                                            ".": {},
+                                            "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                                        },
+                                        "f:labels": {
+                                            ".": {},
+                                            "f:app.kubernetes.io/managed-by": {}
+                                        }
+                                    }
+                                },
+                                "manager": "pulumi-resource-kubernetes",
+                                "operation": "Update",
+                                "time": "2021-11-27T22:09:32Z"
+                            }
+                        ],
+                        "name": "knative-eventing",
+                        "namespace": "knative-eventing",
+                        "resourceVersion": "1794",
+                        "uid": "97e34b13-2817-40b9-961d-c8daf373978d"
+                    }
+                },
+                "parent": "urn:pulumi:knative_eventing::create-knative-cluster::custom:stack:KnativeEventingStack$custom:k8s:KnativeEventing::knative-eventing",
+                "dependencies": [
+                    "urn:pulumi:knative_eventing::create-knative-cluster::custom:stack:KnativeEventingStack$custom:k8s:KnativeEventing$kubernetes:core/v1:Namespace::knative-eventing"
+                ],
+                "provider": "urn:pulumi:knative_eventing::create-knative-cluster::pulumi:providers:kubernetes::k8s-provider::a9f41862-9706-4e6b-8abe-5ee8800dde25",
+                "propertyDependencies": {
+                    "apiVersion": null,
+                    "kind": null,
+                    "metadata": [
+                        "urn:pulumi:knative_eventing::create-knative-cluster::custom:stack:KnativeEventingStack$custom:k8s:KnativeEventing$kubernetes:core/v1:Namespace::knative-eventing"
+                    ]
+                }
+            }
+        ]
+    }
+}

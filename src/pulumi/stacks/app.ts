@@ -1,19 +1,23 @@
 import * as path from 'path'
+import * as dotenv from 'dotenv'
 import * as pulumi from '@pulumi/pulumi'
 import * as awsx from '@pulumi/awsx'
 import * as knative from '../k8s_crds/knative-serving'
-import { KnativeVirtualService } from '../component_resources'
+import { KnativeVirtualService } from '../component-resources'
 
-require('dotenv').config({
-  path: path.resolve(__dirname, '../../frontend', '.env')
-})
+dotenv.config({ path: path.resolve(__dirname, '../../frontend', '.env') })
 
 export interface AppStackArgs {
   project: string,
   stackEnv: string,
+  imageUrl: pulumi.Output<string>,
   customDomain: string,
   appNamespaceName: string,
-  dbSecretName: string,
+  dbUser: string,
+  dbPassword: pulumi.Output<string>,
+  dbName: pulumi.Output<string>,
+  dbEndpoint: pulumi.Output<string>,
+  dbPort: pulumi.Output<number>,
   knativeHttpsIngressGatewayName: string,
 }
 
@@ -24,28 +28,18 @@ export class AppStack extends pulumi.ComponentResource {
     const {
       project,
       stackEnv,
+      imageUrl,
       customDomain,
       appNamespaceName,
-      dbSecretName,
+      dbUser,
+      dbPassword,
+      dbName,
+      dbEndpoint,
+      dbPort,
       knativeHttpsIngressGatewayName,
     } = args
 
-    const projectRootDir = path.resolve(__dirname, '../../')
     const isProduction = stackEnv === 'prod'
-
-    /**
-     * Build and push images to ECR
-     */
-
-    // Unique to React Apps
-    // Must provide frontend env variables (i.e. REACT_APP_*) since it's not present during Github Actions CD (i.e. .env is not checked into the repo)
-    const frontendEnvs = {
-    }
-    const appImage = awsx.ecr.buildAndPushImage(`${project}-${stackEnv}-app-image`, {
-      context: projectRootDir,
-      dockerfile: './Dockerfile.prod',
-      ...Object.keys(frontendEnvs).length === 0 ? {} : { args: frontendEnvs },
-    })
 
     // Deploy Knative Service
     const appKSvcName = `app-ksvc`
@@ -68,21 +62,36 @@ export class AppStack extends pulumi.ComponentResource {
           },
           spec: {
             containers: [{
-              image: appImage.image(),
+              image: imageUrl,
               env: [
                 {
                   name: 'NODE_ENV',
                   value: isProduction ? 'production' : 'staging',
                 },
                 {
-                  name: 'DATABASE_URL',
-                  valueFrom: {
-                    secretKeyRef: {
-                      name: dbSecretName,
-                      key: 'prisma_database_url'
-                    }
-                  }
+                  name: 'DB_USER',
+                  value: dbUser,
                 },
+                {
+                  name: 'DB_PASSWORD',
+                  value: dbPassword,
+                },
+                {
+                  name: 'DB_NAME',
+                  value: dbName,
+                },
+                {
+                  name: 'DB_ENDPOINT',
+                  value: dbEndpoint,
+                },
+                {
+                  name: 'DB_PORT',
+                  value: dbPort,
+                },
+                // {
+                //   name: 'DATABASE_URL',
+                //   value: pulumi.interpolate`postgresql://${dbUser}:${dbPassword}@${dbEndpoint}:${dbPort}/${dbName}?schema=public`
+                // },
               ],
             }]
           }

@@ -1,5 +1,5 @@
 import * as pulumi from '@pulumi/pulumi'
-import { KnativeEventing } from '../component_resources'
+import { KnativeEventing } from '../component-resources'
 
 export interface KnativeEventingStackArgs {
 }
