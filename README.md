@@ -45,14 +45,14 @@ Please check out the Knative docs [here](https://knative.dev/docs/) for more det
 * Knative Eventing: Currently not really used for anything and not connected to any eventing sources (i.e. Kafka, Ceph, etc.)
 * Monitoring via Kube Prometheus Stack: Monitoring with Prometheus and Grafana is enabled by default. Login to Grafana using the credentials you set with CLI by visiting grafana-dashboard.your-domain.com
 * (Optional) AWS RDS instance
-    * Staging DB: Defaults to `db.t3.micro` with 5GB of storage and 20GB of max storage
-    * Prod DB: Defaults to `db.t3.small` with 10GB of storage and 100GB of max storage
+  * Staging DB: Defaults to `db.t3.micro` with 5GB of storage and 20GB of max storage
+  * Prod DB: Defaults to `db.t3.small` with 10GB of storage and 100GB of max storage
 * (Optional) App
-    * Staging app: Knative Service that routes to `staging.<your-domain>` using Istio VirtualService
-    * Pro app: Knative Service that routes to `*.<your-domain>` using Istio VirtualService
-      * For more information on Knative Service, see [Knative docs](https://knative.dev/docs/) 
-      * For more information on Istio VirtualService, see [Istio docs](https://istio.io/latest/docs/reference/config/networking/virtual-service/)
-      * To understand the internals of Create Knative Cluster better, see the [Internals](#internals) section
+  * Staging app: Knative Service that routes to `staging.<your-domain>` (i.e. `staging.sidetrek.com`) using Istio VirtualService
+  * Pro app: Knative Service that routes to `*.<your-domain>` (i.e. `*.sidetrek.com`) using Istio VirtualService
+    * For more information on Knative Service, see [Knative docs](https://knative.dev/docs/) 
+    * For more information on Istio VirtualService, see [Istio docs](https://istio.io/latest/docs/reference/config/networking/virtual-service/)
+    * To understand the internals of Create Knative Cluster better, see the [Internals](#internals) section
 
 ### Cost considerations
 This project is completely open-source but the resources it provisions will cost you in potentially two ways.
@@ -63,7 +63,7 @@ This project is completely open-source but the resources it provisions will cost
 ## <a name="creating-knative-cluster"></a>Creating a Knative cluster
 
 ### Pre-requisites
-1. Install `aws` cli
+1. Install `aws` cli by following the instructions [here](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 2. Create a Pulumi AWS Typescript project
    * Follow the instructions in [Pulumi docs](https://www.pulumi.com/docs/get-started/aws/begin/) to set up Pulumi and AWS credentials
 3. Install `kubectl`
@@ -151,7 +151,7 @@ You can customize the default setup simply by updating the stacks via Pulumi cli
 
 But be mindful if you want to reduce the default resources allocations (e.g. reducing the minimum number of nodes or downgrading EC2 instance types for the cluster). It could fail to provision resources due to the max number of pods that can be created per EC2 instance type or run out of nodes to allocate Kubernetes pods to.
 
-### Manage resources locally via Pulumi
+## Manage resources locally via Pulumi
 You can add/update/delete any resources via Pulumi. This project was specifically designed for this use case.
 
 All Pulumi setup files are copied in `/pulumi` folder during project creation. You can alter these files to alter the state of your AWS/Kubernetes resources using Pulumi cli.
@@ -175,7 +175,9 @@ You can destroy the entire project (assuming you didn't any more resources) by r
 npx create-knative-cluster destroy
 ```
 
-Please note that this command will completely destroy the project. This is useful for testing and also for starting with a clean state in case something goes wrong during the installation.
+### Caveats for using this command
+* This command will completely destroy the project. This is useful for testing and also for starting with a clean state in case something goes wrong during the installation.
+* This command <b>assumes the project was just created</b>. If you've added any new Pulumi stacks, you'll need to manually destroy those stacks first before running this command. Again, this command is built for when the setup process ran into unexpected issues or for testing. Once the project is setup, it's up to you to manage all resources using Pulumi.
 
 ### Destroying individual stacks
 If you prefer to keep parts of it, you can destroy individual stacks by selecting the stack `pulumi stack select <stack name>` and then running:
@@ -188,14 +190,14 @@ You should be very careful when destroying individual stacks. There are dependen
 
 ### Caveats
 * Dependencies between stacks:
-    * Some stacks are dependent on other stacks which means attempting to destroy the parent stack can fail. For example, `cluster` stack will fail to destroy properly if there are resources still existing in the `cluster`. Be mindful of these dependencies - otherwise, you might have to do a lot of manual cleaning of orphaned resources.
-    * In general, you should destroy things in this order:
-        * App and app related services like RDS which is dependent on cluster services like Knative and Istio, 
-        * Cluster services like Istio, Knative, cert-manager, etc, a
-        * Finally, the cluster itself if necessary
+  * Some stacks are dependent on other stacks which means attempting to destroy the parent stack can fail. For example, `cluster` stack will fail to destroy properly if there are resources still existing in the `cluster`. Be mindful of these dependencies - otherwise, you might have to do a lot of manual cleaning of orphaned resources.
+  * In general, you should destroy things in this order:
+    * App and app related services like RDS which is dependent on cluster services like Knative and Istio, 
+    * Cluster services like Istio, Knative, cert-manager, etc, a
+    * Finally, the cluster itself if necessary
 * Known limitation with `pulumi destroy` for `knative_operator` stack:
-    * You need to destroy the `knative_serving` and `knative_eventing` stacks before destroying `knative_operator`.
-    * By design, destroying Knative Operator does not remove Knative CRDs (in case the CRDs are used in other resources).
+  * You need to destroy the `knative_serving` and `knative_eventing` stacks before destroying `knative_operator`.
+  * By design, destroying Knative Operator does not remove Knative CRDs (in case the CRDs are used in other resources).
 
 ## Rollbacks using Knative
 Coming soon
@@ -214,9 +216,9 @@ Coming soon
 
 ## Troubleshooting
 * If destroy operation fails due to timeout (i.e. waiting for some cloud resource state to become 'destroyed'), then:
-    * Destroy the resource manually - i.e. via AWS console or aws/kubectl cli
-    * Refresh the Pulumi state (this will make sure Pulumi state is again in sync with cloud state): `pulumi refresh` (make sure you're in the right Pulumi stack)
-    * Retry `create-knative-cluster destroy` (or `pulumi destroy` in the stack if destroying manually via Pulumi cli) to destroy the rest of the resources
+  * Destroy the resource manually - i.e. via AWS console or aws/kubectl cli
+  * Refresh the Pulumi state (this will make sure Pulumi state is again in sync with cloud state): `pulumi refresh` (make sure you're in the right Pulumi stack)
+  * Retry `create-knative-cluster destroy` (or `pulumi destroy` in the stack if destroying manually via Pulumi cli) to destroy the rest of the resources
 
 ## <a name="internals"></a>Internals of Create Knative Cluster
 This explanation assumes basic understanding of Docker and Kubernetes. If you are not familiar with these topics, there's a lot of great resources on YouTube, such as this great intro series on [Docker](https://youtu.be/3c-iBn73dDE) and [Kubernetes](https://youtu.be/X48VuDVv0do).
