@@ -5,6 +5,7 @@ import * as k8s from '@pulumi/kubernetes'
 import { simpleStore } from './pulumi/store'
 
 const cliExecCtx = simpleStore.getState('cliExecutionContext')
+const cliOptions = simpleStore.getState('cliOptions')
 
 const main = async () => {
   // console.log('cli execution context', cliExecCtx)
@@ -215,20 +216,20 @@ const main = async () => {
    * Stack: app-prod
    */
   if (stack === 'app-staging' || stack === 'app-prod') {
-    const dbUser = config.require('db_user')
-    const dbPassword = config.requireSecret('db_password').apply(password => password)
+    const dbUser = cliOptions.createDb ? config.require('db_user') : undefined
+    const dbPassword = cliOptions.createDb ? config.requireSecret('db_password').apply(password => password) : undefined
 
-    const appBuildStackRef = new pulumi.StackReference(`${organization}/${project}/app-build`)
-    const dbStagingStackRef = new pulumi.StackReference(`${organization}/${project}/db-staging`)
-    const dbProdStackRef = new pulumi.StackReference(`${organization}/${project}/db-prod`)
+    const appBuildStackRef = cliOptions.build ? new pulumi.StackReference(`${organization}/${project}/app-build`) : undefined
+    const dbStagingStackRef = cliOptions.createDb ? new pulumi.StackReference(`${organization}/${project}/db-staging`) : undefined
+    const dbProdStackRef = cliOptions.createDb ? new pulumi.StackReference(`${organization}/${project}/db-prod`) : undefined
 
-    const appEcrImageUrl = appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string>  
-    const stagingDbName = dbStagingStackRef.getOutput('rdsName') as pulumi.Output<string>  
-    const stagingDbEndpoint = dbStagingStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>  
-    const stagingDbPort = dbStagingStackRef.getOutput('rdsPort') as pulumi.Output<number>  
-    const prodDbName = dbProdStackRef.getOutput('rdsName') as pulumi.Output<string> 
-    const prodDbEndpoint = dbProdStackRef.getOutput('rdsEndpoint') as pulumi.Output<string> 
-    const prodDbPort = dbProdStackRef.getOutput('rdsPort') as pulumi.Output<number> 
+    const appEcrImageUrl = appBuildStackRef ? appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string> : cliOptions.imageUrl as string
+    const stagingDbName = dbStagingStackRef && dbStagingStackRef.getOutput('rdsName') as pulumi.Output<string>
+    const stagingDbEndpoint = dbStagingStackRef && dbStagingStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
+    const stagingDbPort = dbStagingStackRef && dbStagingStackRef.getOutput('rdsPort') as pulumi.Output<number>
+    const prodDbName = dbProdStackRef && dbProdStackRef.getOutput('rdsName') as pulumi.Output<string>
+    const prodDbEndpoint = dbProdStackRef && dbProdStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
+    const prodDbPort = dbProdStackRef && dbProdStackRef.getOutput('rdsPort') as pulumi.Output<number>
 
     const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
     const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
@@ -244,8 +245,8 @@ const main = async () => {
       customDomain,
       appNamespaceName,
       dbUser,
-      dbName,
       dbPassword,
+      dbName,
       dbEndpoint,
       dbPort,
       knativeHttpsIngressGatewayName,

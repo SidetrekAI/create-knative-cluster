@@ -179,7 +179,7 @@ program
   .requiredOption('--custom-domain <custom domain>', 'your custom domain; i.e. your-domain.com')
   .option('--build', 'whether to build/push app to ECR; defaults to false', false)
   .option('--image-url <image url>', 'Docker image url - if --build option is not set, this must be passed in') // TODO: defaults to hello world create react + express app
-  .option('--create-db', 'create an RDS instance', true)
+  .option('--create-db', 'create an RDS instance', false)
   .option('--staging-db-user <staging DB user>', 'AWS RDS postgres db user name; defaults to admin', 'admin')
   .option('--staging-db-password <staging DB user>', 'AWS RDS postgres db password; defaults to adminpass', 'adminpass')
   .option('--prod-db-user <prod DB user>', 'AWS RDS postgres db user name; defaults to admin', 'admin')

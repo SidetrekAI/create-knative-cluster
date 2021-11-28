@@ -84,7 +84,7 @@ Other optional installations:
 * (Optional) Install `kn` (Knative cli) - follow the instructions [here](https://knative.dev/docs/install/client/install-kn/)
 
 ### Get started
-Deploy your app to a Kubernetes cluster (🧘🏼‍♀️ please be patient as the entire process can take 30-60 minutes to complete - provisioning AWS EKS alone can take 20+ minutes): 
+1. Deploy your app to a Kubernetes cluster (🧘🏼‍♀️ please be patient as the entire process can take 30-60 minutes to complete - provisioning AWS EKS alone can take 20+ minutes): 
 
 ```
 npx create-knative-cluster init \
@@ -107,12 +107,21 @@ npx create-knative-cluster init \
     --use-direnv=true \
 ```
 
+2. Point custom domain to Istio Ingress Gateway URL (this is the entry point to the cluster)
+   1. Run `kubectl get svc -n istio-system` to get the External IP of `istio-system/istio-ingressgateway`
+   2. Add a CNAME record in Route 53: in the custom domain's Hosted zone, Create record with:
+      * Record name: *.<your-domain> (i.e. *.sidetrek.com), 
+      * Record type: CNAME, and 
+      * Value: Istio ingress gateway external IP from the previous step
+
 If you'd like to see the whole project setup from start to finish, please see [tutorials section](#tutorials). 
 
 ### (Optional) Set up RDS
 
 ### (Optional) Set up a Create React App + Express app
-1. Make sure `Dockerfile.prod` is present in the project root dir. This Dockerfile will be used to build and push the image to ECR. Here's an example of `Dockerfile.prod` assuming your react app is in `/frontend` dir and `npm run server:prod` runs the Express server (e.g.: `nodemon server/server.js --ext js --exec babel-node`):
+1. Make sure `Dockerfile.prod` is present in the project root dir. This Dockerfile will be used to build and push the image to ECR. 
+
+Here's an example of `Dockerfile.prod` assuming your react app is in `/frontend` dir and `npm run server:prod` runs the Express server (e.g.: `nodemon server/server.js --ext js --exec babel-node`):
 
 ```
 # For production build, include both api and frontend in the same build

@@ -10,14 +10,14 @@ dotenv.config({ path: path.resolve(__dirname, '../../frontend', '.env') })
 export interface AppStackArgs {
   project: string,
   stackEnv: string,
-  imageUrl: pulumi.Output<string>,
+  imageUrl: pulumi.Output<string> | string,
   customDomain: string,
   appNamespaceName: string,
-  dbUser: string,
-  dbPassword: pulumi.Output<string>,
-  dbName: pulumi.Output<string>,
-  dbEndpoint: pulumi.Output<string>,
-  dbPort: pulumi.Output<number>,
+  dbUser?: string,
+  dbPassword?: pulumi.Output<string>,
+  dbName?: pulumi.Output<string>,
+  dbEndpoint?: pulumi.Output<string>,
+  dbPort?: pulumi.Output<number>,
   knativeHttpsIngressGatewayName: string,
 }
 
@@ -64,30 +64,12 @@ export class AppStack extends pulumi.ComponentResource {
             containers: [{
               image: imageUrl,
               env: [
-                {
-                  name: 'NODE_ENV',
-                  value: isProduction ? 'production' : 'staging',
-                },
-                {
-                  name: 'DB_USER',
-                  value: dbUser,
-                },
-                {
-                  name: 'DB_PASSWORD',
-                  value: dbPassword,
-                },
-                {
-                  name: 'DB_NAME',
-                  value: dbName,
-                },
-                {
-                  name: 'DB_ENDPOINT',
-                  value: dbEndpoint,
-                },
-                {
-                  name: 'DB_PORT',
-                  value: dbPort,
-                },
+                { name: 'NODE_ENV', value: isProduction ? 'production' : 'staging' },
+                ...(dbUser ? [{ name: 'DB_USER', value: dbUser }] : []),
+                ...(dbPassword ? [{ name: 'DB_PASSWORD', value: dbPassword }] : []),
+                ...(dbName ? [{ name: 'DB_NAME', value: dbName }] : []),
+                ...(dbEndpoint ? [{ name: 'DB_ENDPOINT', value: dbEndpoint }] : []),
+                ...(dbPort ? [{ name: 'DB_PORT', value: dbPort }] : []),
                 // {
                 //   name: 'DATABASE_URL',
                 //   value: pulumi.interpolate`postgresql://${dbUser}:${dbPassword}@${dbEndpoint}:${dbPort}/${dbName}?schema=public`

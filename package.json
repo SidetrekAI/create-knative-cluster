@@ -13,7 +13,9 @@
   "scripts": {
     "build": "tsc -p .",
     "ckc:init": "ckc init --aws-region=us-west-1 --pulumi-organization=seunggs --custom-domain=sidetrek.com --custom-domain-zone-id=Z09102783DPQNXBVBM64X --acme-email=hello@sidetrek.com --use-direnv",
-    "start": "npm run build && npm run ckc:init",
+    "start:init": "npm run build && npm run ckc:init",
+    "ckc:app": "ckc app --aws-region=us-west-1 --pulumi-organization=seunggs --custom-domain=sidetrek.com --build --createDb",
+    "start:app": "npm run build && npm run ckc:app",
     "ckc:destroy": "ckc destroy",
     "destroy": "npm run build && npm run ckc:destroy",
     "release": "npm run build && np",
