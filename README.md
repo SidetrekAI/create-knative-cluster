@@ -63,25 +63,25 @@ This project is completely open-source but the resources it provisions will cost
 ## <a name="creating-knative-cluster"></a>Creating a Knative cluster
 
 ### Pre-requisites
-* Install `aws` cli
-* Create a Pulumi AWS Typescript project
+1. Install `aws` cli
+2. Create a Pulumi AWS Typescript project
    * Follow the instructions in [Pulumi docs](https://www.pulumi.com/docs/get-started/aws/begin/) to set up Pulumi and AWS credentials
-* Install `kubectl`
-* Install npm dependencies: `npm i @pulumi/aws @pulumi/awsx @pulumi/eks @pulumi/kubernetes @pulumi/kubernetes-cert-manager @pulumi/pulumi`
-* Set up a custom domain
+3. Install `kubectl`
+4. Install npm dependencies: `npm i @pulumi/aws @pulumi/awsx @pulumi/eks @pulumi/kubernetes @pulumi/kubernetes-cert-manager @pulumi/pulumi`
+5. Set up a custom domain
    1. Register a domain - easiest way is to use AWS Route 53 to [register a new custom domain](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/domain-register.html#domain-register-procedure)
    2. If you're using some other DNS provider like GoDaddy, you can either 1) [migrate your domain to Route 53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/MigratingDNS.html) or 2) create a Hosted zone in Route 53 (domain name must match exactly - e.g. `sidetrek.com`) and taking the created name servers (i.e. records with type `NS`) and replacing it with name servers in your current DNS provider like GoDaddy.
    3. Either way, save the ID of the Hosted zone - you'll need it when you set up the project
-* (Optional - but recommended) Setup `direnv` to enable directory specific kubectl setup if you passed in `--use-direnv` option. This is way, you can use kubectl with multiple projects (i.e. multiple Kubernetes clusters). To install:
+6. (Optional - but recommended) Setup `direnv` to enable directory specific kubectl setup if you passed in `--use-direnv` option. This is way, you can use kubectl with multiple projects (i.e. multiple Kubernetes clusters). To install:
    1. Follow the Basic Install in [direnv docs](https://direnv.net/)
    2. Once successfully installed, run `direnv allow .` in the project root directory
 
 Other optional installations:
-1. (Optional) Install `istioctl`
+* (Optional) Install `istioctl`
    * Go to your home directory: `cd ~`
    * [Download the latest Istio release](https://github.com/istio/istio/releases/) to `/istio-installation` folder
    * Add `istioctl` to PATH
-2. (Optional) Install `kn` (Knative cli) - follow the instructions [here](https://knative.dev/docs/install/client/install-kn/)
+* (Optional) Install `kn` (Knative cli) - follow the instructions [here](https://knative.dev/docs/install/client/install-kn/)
 
 ### Get started
 Deploy your app to a Kubernetes cluster (🧘🏼‍♀️ please be patient as the entire process can take 30-60 minutes to complete - provisioning AWS EKS alone can take 20+ minutes): 
