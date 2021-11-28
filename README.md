@@ -49,10 +49,10 @@ Please check out the Knative docs [here](https://knative.dev/docs/) for more det
     * Prod DB: Defaults to `db.t3.small` with 10GB of storage and 100GB of max storage
 * (Optional) App
     * Staging app: Knative Service that routes to `staging.<your-domain>` using Istio VirtualService
-    * Pro app: Knative Service that routes to `*.<your-domain>` using Istio Virtual Service
-    * For more information on Knative Service, see [Knative docs](https://knative.dev/docs/) 
-    * For more information on Istio VirtualService, see [Istio docs](https://istio.io/latest/docs/reference/config/networking/virtual-service/)
-    * To understand the internals of Create Knative Cluster better, see the [Internals](#internals) section
+    * Pro app: Knative Service that routes to `*.<your-domain>` using Istio VirtualService
+      * For more information on Knative Service, see [Knative docs](https://knative.dev/docs/) 
+      * For more information on Istio VirtualService, see [Istio docs](https://istio.io/latest/docs/reference/config/networking/virtual-service/)
+      * To understand the internals of Create Knative Cluster better, see the [Internals](#internals) section
 
 ### Cost considerations
 This project is completely open-source but the resources it provisions will cost you in potentially two ways.
@@ -69,11 +69,19 @@ This project is completely open-source but the resources it provisions will cost
 3. Install `kubectl`
 4. Install npm dependencies: `npm i @pulumi/aws @pulumi/awsx @pulumi/eks @pulumi/kubernetes @pulumi/kubernetes-cert-manager @pulumi/pulumi`
 5. Set up a custom domain
-6. (Optional - but recommended) Setup `direnv` to enable directory specific kubectl setup if you passed in `--use-direnv` option. This is way, you can use kubectl with multiple projects (i.e. multiple Kubernetes clusters). Follow the Basic Install in [direnv docs](https://direnv.net/) and run `direnv allow .` in the project directory to approve its use.
-7. (Optional) Install `istioctl`
+   1. Register a domain - easiest way is to use AWS Route 53 to [register a new custom domain](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/domain-register.html#domain-register-procedure)
+   2. If you're using some other DNS provider like GoDaddy, you can either 1) [migrate your domain to Route 53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/MigratingDNS.html) or 2) create a Hosted zone in Route 53 (domain name must match exactly - e.g. `sidetrek.com`) and taking the created name servers (i.e. records with type `NS`) and replacing it with name servers in your current DNS provider like GoDaddy.
+   3. Either way, save the ID of the Hosted zone - you'll need it when you set up the project
+6. (Optional - but recommended) Setup `direnv` to enable directory specific kubectl setup if you passed in `--use-direnv` option. This is way, you can use kubectl with multiple projects (i.e. multiple Kubernetes clusters). To install:
+   1. Follow the Basic Install in [direnv docs](https://direnv.net/)
+   2. Once successfully installed, run `direnv allow .` in the project root directory
+
+Other optional installations:
+1. (Optional) Install `istioctl`
    * Go to your home directory: `cd ~`
    * [Download the latest Istio release](https://github.com/istio/istio/releases/) to `/istio-installation` folder
    * Add `istioctl` to PATH
+2. (Optional) Install `kn` (Knative cli) - follow the instructions [here](https://knative.dev/docs/install/client/install-kn/)
 
 ### Get started
 Deploy your app to a Kubernetes cluster (🧘🏼‍♀️ please be patient as the entire process can take 30-60 minutes to complete - provisioning AWS EKS alone can take 20+ minutes): 
