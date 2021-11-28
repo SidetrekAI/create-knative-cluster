@@ -1,7 +1,0 @@
-config:
-  aws:region: us-west-1
-  create-knative-cluster:custom_domain: sidetrek.com
-  create-knative-cluster:grafana_password:
-    secure: AAABAOcNlY1kNzQOLx0/ZxfSPGrMIv4lvU9D0wa9h7Vm8PFBOujUVUQ=
-  create-knative-cluster:grafana_user: admin
-  create-knative-cluster:pulumi_organization: seunggs
