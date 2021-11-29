@@ -86,15 +86,6 @@ async function handleInit(options: CliOptions) {
   spinner.succeed(successColor('Successfully copied Pulumi files to project folder'))
 
   /**
-   * Set up direnv
-   */
-  if (useDirenv) {
-    spinner.start(infoColor(`Allowing direnv access...`))
-    runCliCmd(`direnv allow ${cwd}`)
-    spinner.succeed(successColor('Successfully allowed direnv access'))
-  }
-
-  /**
    * Run Pulumi Automation scripts to set up Kubernetes and deploy all resources
    */
   spinner.start(infoColor(`Prepping for Pulumi stack creations...`))
@@ -143,6 +134,7 @@ async function handleInit(options: CliOptions) {
   spinner.start(infoColor(`Exporting kubeconfig for kubectl...`))
   await fs.writeFile(path.resolve(cwd, 'kubeconfig-devs.json'), JSON.stringify(clusterOutputs.kubeconfig.value, null, 2))
   if (useDirenv) {
+    await runCliCmd(`direnv allow ${cwd}`)
     await runCliCmd('echo export KUBECONFIG=$(pwd)/kubeconfig-devs.json > .envrc')
   } else {
     await runCliCmd('export KUBECONFIG=$(pwd)/kubeconfig-devs.json')
