@@ -86,6 +86,13 @@ async function handleInit(options: CliOptions) {
   spinner.succeed(successColor('Successfully copied Pulumi files to project folder'))
 
   /**
+   * Set up direnv
+   */
+  if (useDirenv) {
+    runCliCmd('direnv allow .')
+  }
+
+  /**
    * Run Pulumi Automation scripts to set up Kubernetes and deploy all resources
    */
   spinner.start(infoColor(`Prepping for Pulumi stack creations...`))
