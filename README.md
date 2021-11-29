@@ -150,6 +150,20 @@ COPY --from=builder /app/build ./build
 CMD npm run server:prod
 ```
 
+Also add `.dockerignore` file in the project root dir:
+```
+Dockerfile
+README.md
+node_modules
+npm-debug.log
+logs
+.env*
+.env
+.env.development
+.env.production
+kubeconfig*
+```
+
 2. Run `npx create-knative-cluster app`
 
 ### (Optional) Set up dev

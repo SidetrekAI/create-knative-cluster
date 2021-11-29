@@ -170,6 +170,7 @@ const main = async () => {
    */
   if (stack === 'app-build') {
     const projectRootDir = cliExecCtx === 'ckc' ? cwd : path.resolve(__dirname)
+    console.log('projectRootDir', projectRootDir)
 
     const { AppBuildStack } = await import('./pulumi/stacks/app-build')
     const appBuildStackOutput = new AppBuildStack('app-ns-stack', {
