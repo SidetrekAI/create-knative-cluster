@@ -8,7 +8,6 @@ import * as yaml from 'js-yaml'
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
 
 export const getProjectName = () => {
-  const cwd = process.cwd() // dir where the cli is run (i.e. project root)
   const pulumiYamlFile = path.resolve(cwd, 'Pulumi.yaml')
 
   if (!fs.existsSync(pulumiYamlFile)) {

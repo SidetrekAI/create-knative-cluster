@@ -1,9 +1,11 @@
+import * as path from 'path'
 import * as pulumi from '@pulumi/pulumi'
 import * as aws from '@pulumi/aws'
 import * as awsx from '@pulumi/awsx'
 import * as k8s from '@pulumi/kubernetes'
 import { simpleStore } from './pulumi/store'
 
+const cwd = process.cwd() // dir where the cli is run (i.e. project root)
 const cliExecCtx = simpleStore.getState('cliExecutionContext')
 const cliOptions = simpleStore.getState('cliOptions')
 
@@ -167,8 +169,11 @@ const main = async () => {
    * Stack: app-build
    */
   if (stack === 'app-build') {
+    const projectRootDir = cliExecCtx === 'ckc' ? cwd : path.resolve(__dirname)
+
     const { AppBuildStack } = await import('./pulumi/stacks/app-build')
     const appBuildStackOutput = new AppBuildStack('app-ns-stack', {
+      projectRootDir,
       project,
     }, { provider: k8sProvider })
     return appBuildStackOutput

@@ -1,3 +1,4 @@
+import * as path from 'path'
 import * as pulumi from '@pulumi/pulumi'
 import * as aws from '@pulumi/aws'
 import * as k8s from '@pulumi/kubernetes'
@@ -161,6 +162,12 @@ export class KnativeOperator extends pulumi.ComponentResource {
     const knativeOperator = new k8s.yaml.ConfigGroup(name, {
       files: `https://github.com/knative/operator/releases/download/knative-v${version}/operator.yaml`,
     }, { parent: this })
+
+    // // HACK: try locally
+    // // Install knative operator
+    // const knativeOperator = new k8s.yaml.ConfigGroup(name, {
+    //   files: path.resolve(__dirname, 'downloads/knative-operator/operator.yaml'),
+    // }, { parent: this })
 
     this.resources = knativeOperator.resources
 

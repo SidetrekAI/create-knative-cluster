@@ -2,12 +2,9 @@ import * as path from 'path'
 import * as dotenv from 'dotenv'
 import * as pulumi from '@pulumi/pulumi'
 import * as awsx from '@pulumi/awsx'
-import * as knative from '../k8s_crds/knative-serving'
-import { KnativeVirtualService } from '../component-resources'
-
-dotenv.config({ path: path.resolve(__dirname, '../../frontend', '.env') })
 
 export interface AppBuildStackArgs {
+  projectRootDir: string,
   project: string,
 }
 
@@ -18,10 +15,11 @@ export class AppBuildStack extends pulumi.ComponentResource {
     super('custom:stack:AppBuildStack', name, {}, opts)
 
     const {
+      projectRootDir,
       project,
     } = args
 
-    const projectRootDir = path.resolve(__dirname, '../../')
+    dotenv.config({ path: path.resolve(__dirname, projectRootDir, 'frontend', '.env') })
 
     /**
      * Build and push images to ECR

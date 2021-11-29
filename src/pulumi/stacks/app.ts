@@ -2,7 +2,7 @@ import * as path from 'path'
 import * as dotenv from 'dotenv'
 import * as pulumi from '@pulumi/pulumi'
 import * as awsx from '@pulumi/awsx'
-import * as knative from '../k8s_crds/knative-serving'
+import * as knative from '../k8s-crds/knative-serving'
 import { KnativeVirtualService } from '../component-resources'
 
 dotenv.config({ path: path.resolve(__dirname, '../../frontend', '.env') })
