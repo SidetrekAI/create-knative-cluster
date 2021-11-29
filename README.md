@@ -121,7 +121,7 @@ If you'd like to see the whole project setup from start to finish, please see [t
 ### (Optional) Set up a Create React App + Express app
 1. Make sure `Dockerfile.prod` is present in the project root dir. This Dockerfile will be used to build and push the image to ECR. 
 
-Here's an example of `Dockerfile.prod` assuming your react app is in `/frontend` dir and `npm run server:prod` runs the Express server (e.g.: `nodemon server/server.js --ext js --exec babel-node`):
+Here's an example of `Dockerfile.prod` assuming your react app is in `/frontend` dir and `npm run server:prod` runs the Express server (e.g.: `nodemon server/server.js` - of course, make sure you have `nodemon` installed in this case):
 
 ```
 # For production build, include both api and frontend in the same build
@@ -150,7 +150,7 @@ COPY --from=builder /app/build ./build
 CMD npm run server:prod
 ```
 
-2. 
+2. Run `npx create-knative-cluster app`
 
 ### (Optional) Set up dev
 Coming soon

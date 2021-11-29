@@ -339,19 +339,19 @@ async function handleDestroy(options: CliOptions) {
    *    NOTE: Destroy them in reverse order - required because there are dependencies
    */
 
-  // // Destroy prod app and db
-  // await pulumiA.stackDestroy('app-prod', { remove: removeStacks })
-  // await pulumiA.stackDestroy('db-prod', { remove: removeStacks })
+  // Destroy prod app and db
+  await pulumiA.stackDestroy('app-prod', { remove: removeStacks })
+  await pulumiA.stackDestroy('db-prod', { remove: removeStacks })
 
-  // // Destroy staging app and db
-  // await pulumiA.stackDestroy('app-staging', { remove: removeStacks })
-  // await pulumiA.stackDestroy('db-staging', { remove: removeStacks })
+  // Destroy staging app and db
+  await pulumiA.stackDestroy('app-staging', { remove: removeStacks })
+  await pulumiA.stackDestroy('db-staging', { remove: removeStacks })
 
-  // // Destroy app namespaces
-  // await pulumiA.stackDestroy('app-ns', { remove: removeStacks })
+  // Destroy app namespaces
+  await pulumiA.stackDestroy('app-ns', { remove: removeStacks })
 
-  // // Destroy app build
-  // await pulumiA.stackDestroy('app-build', { remove: removeStacks })
+  // Destroy app build
+  await pulumiA.stackDestroy('app-build', { remove: removeStacks })
 
   // Destroy monitoring
   await pulumiA.stackDestroy('kube-prometheus-stack', { remove: removeStacks })
