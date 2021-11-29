@@ -134,7 +134,7 @@ async function handleInit(options: CliOptions) {
   spinner.start(infoColor(`Exporting kubeconfig for kubectl...`))
   await fs.writeFile(path.resolve(cwd, 'kubeconfig-devs.json'), JSON.stringify(clusterOutputs.kubeconfig.value, null, 2))
   if (useDirenv) {
-    await runCliCmd(`direnv allow ${cwd}`)
+    await runCliCmd(`direnv allow .`)
     await runCliCmd('echo export KUBECONFIG=$(pwd)/kubeconfig-devs.json > .envrc')
   } else {
     await runCliCmd('export KUBECONFIG=$(pwd)/kubeconfig-devs.json')
