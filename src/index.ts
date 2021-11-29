@@ -89,7 +89,7 @@ async function handleInit(options: CliOptions) {
    * Set up direnv
    */
   if (useDirenv) {
-    runCliCmd('direnv allow .')
+    runCliCmd(`direnv allow ${cwd}`)
   }
 
   /**
