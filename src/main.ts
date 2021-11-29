@@ -17,6 +17,8 @@ const main = async () => {
   const stack = cliExecCtx === 'ckc' ? simpleStore.getState('currentStack') : pulumi.getStack()
 
   const organization = config.require('pulumi_organization')
+  console.log('organization', organization)
+  console.log('project', project)
   const customDomain = config.require('custom_domain')
   const { accountId: awsAccountId } = await aws.getCallerIdentity({})
   const { name: awsRegion } = await aws.getRegion()
