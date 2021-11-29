@@ -161,7 +161,7 @@ export class KnativeOperator extends pulumi.ComponentResource {
     // Install knative operator
     const knativeOperator = new k8s.yaml.ConfigGroup(name, {
       files: `https://github.com/knative/operator/releases/download/knative-v${version}/operator.yaml`,
-    }, { parent: this })
+    }, { parent: this, replaceOnChanges: ['*'] })
 
     // // HACK: try locally
     // // Install knative operator
