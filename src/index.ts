@@ -89,7 +89,9 @@ async function handleInit(options: CliOptions) {
    * Set up direnv
    */
   if (useDirenv) {
+    spinner.start(infoColor(`Allowing direnv access...`))
     runCliCmd(`direnv allow ${cwd}`)
+    spinner.succeed(successColor('Successfully allowed direnv access'))
   }
 
   /**
