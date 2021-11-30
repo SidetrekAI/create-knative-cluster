@@ -42,6 +42,7 @@ export interface PulumiAutomationOptions {
   globalConfigMap?: ConfigMap,
   beforePulumiRun?: (opts: PulumiAutomationHookOptions) => any,
   afterPulumiRun?: (opts: PulumiAutomationHookOptions) => any,
+  debug?: boolean,
 }
 
 export interface PulumiAutomationHookOptions {
@@ -58,7 +59,7 @@ export class PulumiAutomation {
   }
 
   async stackUp(stackName: string, programArgs: PulumiProgramArgs, options?: PulumiStackUpOptions): Promise<any> {
-    const { globalConfigMap = {}, beforePulumiRun, afterPulumiRun } = this.options
+    const { globalConfigMap = {}, beforePulumiRun, afterPulumiRun, debug = false } = this.options
     const { createPulumiProgram, plugins = [], configMap = {} } = programArgs
     const { inputs = [], beforeUp, afterUp } = options || {}
 
@@ -74,7 +75,7 @@ export class PulumiAutomation {
       program,
       plugins,
       configMap: { ...configMap, ...globalConfigMap },
-      options: { destroy: false, remove: false },
+      options: { destroy: false, remove: false, debug },
     })
 
     afterUp && afterUp({ stackName })
@@ -85,7 +86,7 @@ export class PulumiAutomation {
   }
 
   async stackDestroy(stackName: string, options?: PulumiStackDestroyOptions): Promise<any> {
-    const { beforePulumiRun, afterPulumiRun } = this.options
+    const { beforePulumiRun, afterPulumiRun, debug = false } = this.options
     const { remove = true, beforeDestroy, afterDestroy } = options || {}
 
     beforePulumiRun && beforePulumiRun({ stackName })
@@ -98,7 +99,7 @@ export class PulumiAutomation {
       program: async () => { },
       plugins: [],
       configMap: {},
-      options: { destroy: true, remove },
+      options: { destroy: true, remove, debug },
     })
 
     afterDestroy && afterDestroy({ stackName })
@@ -112,6 +113,7 @@ export class PulumiAutomation {
 export interface PulumiRunOptions {
   destroy: boolean,
   remove: boolean,
+  debug: boolean,
 }
 
 export interface PulumiRunArgs {
@@ -132,6 +134,7 @@ export const pulumiRun = async ({
   options: {
     destroy,
     remove,
+    debug,
   },
 }: PulumiRunArgs) => {
   try {
@@ -154,12 +157,12 @@ export const pulumiRun = async ({
       // Refresh the stack in case there are manual pre-run commands
       spinner.start(infoColor(`Refreshing '${stackName}' stack...`))
       await stack.refresh({ onOutput: handleOutput })
-      logUpdate.clear()
+      if (!debug) { logUpdate.clear() }
       spinner.succeed(successColor(`Refreshed '${stackName}' stack`))
 
       spinner.start(infoColor(`Destroying '${stackName}' stack...`))
       const destroyRes = await stack.destroy({ onOutput: handleOutput })
-      logUpdate.clear()
+      if (!debug) { logUpdate.clear() }
       spinner.succeed(successColor(`Destroyed '${stackName}' stack`))
 
       if (remove) {
@@ -195,7 +198,7 @@ export const pulumiRun = async ({
 
     spinner.start(infoColor(`Updating '${stackName}' stack...`))
     const upRes = await stack.up({ onOutput: handleOutput })
-    logUpdate.clear()
+    if (!debug) { logUpdate.clear() }
     spinner.succeed(successColor(`Successfully updated '${stackName}' stack`))
     // console.log(successColor(`\nUpdate summary for '${stackName}' stack: \n${JSON.stringify(upRes.summary.resourceChanges, null, 4)}`))
     // console.log(outputColor(`\nOutputs: \n${JSON.stringify(upRes.outputs, null, 4)}`))

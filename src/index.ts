@@ -42,6 +42,7 @@ program
   .option('--use-direnv', 'to enable directory specific kubectl setup; defaults to false', false)
   .option('--grafana-user <grafana user name>', 'to enable directory specific kubectl setup; defaults to ckcadmin', 'ckcadmin')
   .option('--grafana-password <grafana password>', 'to enable directory specific kubectl setup; defaults to ckcadminpass', 'ckcadminpass')
+  .option('--debug', 'show logs', false)
   .description('create a Knative cluster in AWS EKS using Pulumi')
   .showHelpAfterError('(add --help for additional information)')
   .action(handleInit)
@@ -72,6 +73,7 @@ async function handleInit(options: CliOptions) {
     useDirenv,
     grafanaUser,
     grafanaPassword,
+    debug,
   } = options
 
   /**
@@ -107,6 +109,7 @@ async function handleInit(options: CliOptions) {
   const projectName = getProjectName()
   const globalPulumiConfigMap = simpleStore.getState('globalPulumiConfigMap')
   const pulumiA = new PulumiAutomation(projectName, {
+    debug,
     globalConfigMap: globalPulumiConfigMap,
     beforePulumiRun: ({ stackName }) => {
       // Set the current stack so that mainPulumiProgram will have the right stack
@@ -186,6 +189,7 @@ program
   .option('--staging-db-password <staging DB user>', 'AWS RDS postgres db password; defaults to ckcadminpass', 'ckcadminpass')
   .option('--prod-db-user <prod DB user>', 'AWS RDS postgres db user name; defaults to ckcadmin', 'ckcadmin')
   .option('--prod-db-password <prod DB user>', 'AWS RDS postgres db password; defaults to ckcadminpass', 'ckcadminpass')
+  .option('--debug', 'show logs', false)
   .description('create app using Knative')
   .showHelpAfterError('(add --help for additional information)')
   .action(handleApp)
@@ -208,6 +212,7 @@ async function handleApp(options: CliOptions) {
     stagingDbPassword,
     prodDbUser,
     prodDbPassword,
+    debug,
   } = options
 
   /**
@@ -231,6 +236,7 @@ async function handleApp(options: CliOptions) {
   const projectName = getProjectName()
   const globalPulumiConfigMap = simpleStore.getState('globalPulumiConfigMap')
   const pulumiA = new PulumiAutomation(projectName, {
+    debug,
     globalConfigMap: globalPulumiConfigMap,
     beforePulumiRun: ({ stackName }) => {
       // Set the current stack so that mainPulumiProgram will have the right stack
@@ -299,6 +305,7 @@ program
   .command('destroy')
   .option('--remove-stacks', 'whether or not stacks should also be removed; defaults to true', true)
   .option('--keep-cluster', 'don\'t remove cluster', false)
+  .option('--debug', 'show logs', false)
   .description('destroy the entire project')
   .showHelpAfterError('(add --help for additional information)')
   .action(handleDestroy)
@@ -313,10 +320,12 @@ async function handleDestroy(options: CliOptions) {
   const {
     removeStacks,
     keepCluster,
+    debug
   } = options
 
   const projectName = getProjectName()
   const pulumiA = new PulumiAutomation(projectName, {
+    debug,
     afterPulumiRun: async ({ stackName, remove }) => {
       if (remove) {
         try {
