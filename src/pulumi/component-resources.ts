@@ -161,7 +161,7 @@ export class KnativeOperator extends pulumi.ComponentResource {
     /**
      * Install knative operator
      * 
-     *    IMPORTANT: not 100% yet, but replaceOnChanges option seems to prevent the Circular error
+     *    IMPORTANT: not 100% sure yet, but replaceOnChanges option seems to prevent the Circular error
      *               that happens when Knative Operator stack is run twice - Pulumi attempts to destroy 
      *               ConfigGroups and rebuild them which causes this Circular error (hangs while deleting)
      */
