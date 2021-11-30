@@ -225,23 +225,25 @@ const main = async () => {
     const dbPassword = cliOptions.createDb ? config.requireSecret('db_password').apply(password => password) : undefined
 
     const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
+    const isProd = stackEnv === 'prod'
 
-    const appBuildStackRef = cliOptions.build ? new pulumi.StackReference(`${organization}/${project}/app-build`) : undefined
-    const dbStagingStackRef = (cliOptions.createDb && stackEnv === 'staging') ? new pulumi.StackReference(`${organization}/${project}/db-staging`) : undefined
-    const dbProdStackRef = (cliOptions.createDb && stackEnv === 'prod') ? new pulumi.StackReference(`${organization}/${project}/db-prod`) : undefined
-
+    const appBuildStackRef = cliOptions.build ? new pulumi.StackReference(`${organization}/${project}/app-build`) : undefined    
     const appEcrImageUrl = appBuildStackRef ? appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string> : cliOptions.imageUrl as string
-    const stagingDbName = dbStagingStackRef && stackEnv === 'staging' && dbStagingStackRef.getOutput('rdsName') as pulumi.Output<string>
-    const stagingDbEndpoint = dbStagingStackRef && stackEnv === 'staging' && dbStagingStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
-    const stagingDbPort = dbStagingStackRef && stackEnv === 'staging' && dbStagingStackRef.getOutput('rdsPort') as pulumi.Output<number>
-    const prodDbName = dbProdStackRef && stackEnv === 'prod' && dbProdStackRef.getOutput('rdsName') as pulumi.Output<string>
-    const prodDbEndpoint = dbProdStackRef && stackEnv === 'prod' && dbProdStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
-    const prodDbPort = dbProdStackRef && stackEnv === 'prod' && dbProdStackRef.getOutput('rdsPort') as pulumi.Output<number>
 
-    const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
-    const dbName = stackEnv === 'prod' ? prodDbName : stagingDbName
-    const dbEndpoint = stackEnv === 'prod' ? prodDbEndpoint : stagingDbEndpoint
-    const dbPort = stackEnv === 'prod' ? prodDbPort : stagingDbPort
+    const dbStagingStackRef = (cliOptions.createDb && !isProd) ? new pulumi.StackReference(`${organization}/${project}/db-staging`) : undefined
+    const stagingDbName = (dbStagingStackRef && !isProd) ? dbStagingStackRef.getOutput('rdsName') as pulumi.Output<string> : undefined
+    const stagingDbEndpoint = (dbStagingStackRef && !isProd) ? dbStagingStackRef.getOutput('rdsEndpoint') as pulumi.Output<string> : undefined
+    const stagingDbPort = (dbStagingStackRef && !isProd) ? dbStagingStackRef.getOutput('rdsPort') as pulumi.Output<number> : undefined
+    
+    const dbProdStackRef = (cliOptions.createDb && isProd) ? new pulumi.StackReference(`${organization}/${project}/db-prod`) : undefined
+    const prodDbName = (dbProdStackRef && isProd) ? dbProdStackRef.getOutput('rdsName') as pulumi.Output<string> : undefined
+    const prodDbEndpoint = (dbProdStackRef && isProd) ? dbProdStackRef.getOutput('rdsEndpoint') as pulumi.Output<string> : undefined
+    const prodDbPort = (dbProdStackRef && isProd) ? dbProdStackRef.getOutput('rdsPort') as pulumi.Output<number> : undefined
+
+    const appNamespaceName = isProd ? appProdNamespaceName : appStagingNamespaceName
+    const dbName = isProd ? prodDbName : stagingDbName
+    const dbEndpoint = isProd ? prodDbEndpoint : stagingDbEndpoint
+    const dbPort = isProd ? prodDbPort : stagingDbPort
   
     const { AppStack } = await import('./pulumi/stacks/app')
     const appStackOutput = new AppStack('app-stack', {
