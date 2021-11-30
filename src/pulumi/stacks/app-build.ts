@@ -31,7 +31,7 @@ export class AppBuildStack extends pulumi.ComponentResource {
     }
     const appImage = awsx.ecr.buildAndPushImage(`${project}-app-image`, {
       context: projectRootDir,
-      dockerfile: 'Dockerfile.prod',
+      dockerfile: './Dockerfile.prod',
       ...Object.keys(frontendEnvs).length === 0 ? {} : { args: frontendEnvs },
     })
 

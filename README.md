@@ -127,7 +127,7 @@ Here's an example of `Dockerfile.prod` assuming your react app is in `/frontend`
 # For production build, include both api and frontend in the same build
 
 # Build stage
-FROM node:14.17-alpine AS builder
+FROM node:16-alpine3.13 AS builder
 WORKDIR /app
 
 COPY ./frontend/package*.json ./
@@ -136,7 +136,7 @@ COPY ./frontend .
 RUN npm run build
 
 # Production stage
-FROM node:14.17-alpine
+FROM node:16-alpine3.13
 WORKDIR /app
 # Copy application dependency manifests to the container image.
 # A wildcard is used to ensure both package.json AND package-lock.json are copied.

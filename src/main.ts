@@ -17,8 +17,6 @@ const main = async () => {
   const stack = cliExecCtx === 'ckc' ? simpleStore.getState('currentStack') : pulumi.getStack()
 
   const organization = config.require('pulumi_organization')
-  console.log('organization', organization)
-  console.log('project', project)
   const customDomain = config.require('custom_domain')
   const { accountId: awsAccountId } = await aws.getCallerIdentity({})
   const { name: awsRegion } = await aws.getRegion()
@@ -172,7 +170,6 @@ const main = async () => {
    */
   if (stack === 'app-build') {
     const projectRootDir = cliExecCtx === 'ckc' ? cwd : path.resolve(__dirname)
-    console.log('projectRootDir', projectRootDir)
 
     const { AppBuildStack } = await import('./pulumi/stacks/app-build')
     const appBuildStackOutput = new AppBuildStack('app-ns-stack', {
