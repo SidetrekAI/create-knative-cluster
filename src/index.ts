@@ -197,10 +197,10 @@ program
 async function handleApp(options: CliOptions) {
   console.info(infoColor('\nCreating app...\n'))
   console.time('Done in')
-
+  
   // Make options available in other modules
   simpleStore.setState('cliOptions', options)
-
+  
   const {
     awsRegion,
     pulumiOrganization,
@@ -214,6 +214,8 @@ async function handleApp(options: CliOptions) {
     prodDbPassword,
     debug,
   } = options
+  
+  console.info('debug=', debug)
 
   /**
    * Run Pulumi Automation scripts to set up Kubernetes and deploy all resources
