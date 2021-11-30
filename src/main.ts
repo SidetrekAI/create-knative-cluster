@@ -4,6 +4,7 @@ import * as aws from '@pulumi/aws'
 import * as awsx from '@pulumi/awsx'
 import * as k8s from '@pulumi/kubernetes'
 import { simpleStore } from './pulumi/store'
+import { checkStackExists } from './pulumi/helpers'
 
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
 const cliExecCtx = simpleStore.getState('cliExecutionContext')
@@ -216,18 +217,37 @@ const main = async () => {
     return dbStackOutput
   }
 
+  const checkHasDb = (stackEnv: string) => {
+    return stackEnv === 'prod' ?
+      checkStackExists(`${organization}/${project}/db-prod`) :
+      checkStackExists(`${organization}/${project}/db-staging`)
+  }
+
+  const getDbOutputs = (stackEnv: string) => {
+    const dbUser = config.require('db_user')
+    const dbPassword = config.requireSecret('db_password').apply(password => password)
+
+    const dbStackRef = stackEnv === 'prod' ?
+      new pulumi.StackReference(`${organization}/${project}/db-prod`) :
+      new pulumi.StackReference(`${organization}/${project}/db-staging`)
+
+    const dbName = dbStackRef.getOutput('rdsName') as pulumi.Output<string>
+    const dbEndpoint = dbStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
+    const dbPort = dbStackRef.getOutput('rdsPort') as pulumi.Output<number>
+
+    return { dbUser, dbPassword, dbName, dbEndpoint, dbPort }
+  }
+
   /**
    * Stack: app-staging
    * Stack: app-prod
    */
   if (stack === 'app-staging' || stack === 'app-prod') {
-    const dbUser = cliOptions.createDb ? config.require('db_user') : undefined
-    const dbPassword = cliOptions.createDb ? config.requireSecret('db_password').apply(password => password) : undefined
-
     const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
-    const isProd = stackEnv === 'prod'
+    const includeDb = cliExecCtx === 'ckc' ? cliOptions.createDb : checkHasDb(stackEnv)
+    console.log('includeDb', includeDb)
 
-    const appBuildStackRef = cliOptions.build ? new pulumi.StackReference(`${organization}/${project}/app-build`) : undefined    
+    const appBuildStackRef = cliOptions.build ? new pulumi.StackReference(`${organization}/${project}/app-build`) : undefined
     const appEcrImageUrl = appBuildStackRef ? appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string> : cliOptions.imageUrl as string
     if (typeof appEcrImageUrl !== 'string') {
       console.log('HERE')
@@ -237,21 +257,9 @@ const main = async () => {
       console.log('appEcrImageUrl', appEcrImageUrl)
     }
 
-    const dbStagingStackRef = (cliOptions.createDb && !isProd) ? new pulumi.StackReference(`${organization}/${project}/db-staging`) : undefined
-    const stagingDbName = (dbStagingStackRef && !isProd) ? dbStagingStackRef.getOutput('rdsName') as pulumi.Output<string> : undefined
-    const stagingDbEndpoint = (dbStagingStackRef && !isProd) ? dbStagingStackRef.getOutput('rdsEndpoint') as pulumi.Output<string> : undefined
-    const stagingDbPort = (dbStagingStackRef && !isProd) ? dbStagingStackRef.getOutput('rdsPort') as pulumi.Output<number> : undefined
-    
-    const dbProdStackRef = (cliOptions.createDb && isProd) ? new pulumi.StackReference(`${organization}/${project}/db-prod`) : undefined
-    const prodDbName = (dbProdStackRef && isProd) ? dbProdStackRef.getOutput('rdsName') as pulumi.Output<string> : undefined
-    const prodDbEndpoint = (dbProdStackRef && isProd) ? dbProdStackRef.getOutput('rdsEndpoint') as pulumi.Output<string> : undefined
-    const prodDbPort = (dbProdStackRef && isProd) ? dbProdStackRef.getOutput('rdsPort') as pulumi.Output<number> : undefined
+    const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
+    const dbOpts = includeDb ? getDbOutputs(stackEnv) : {}
 
-    const appNamespaceName = isProd ? appProdNamespaceName : appStagingNamespaceName
-    const dbName = isProd ? prodDbName : stagingDbName
-    const dbEndpoint = isProd ? prodDbEndpoint : stagingDbEndpoint
-    const dbPort = isProd ? prodDbPort : stagingDbPort
-  
     const { AppStack } = await import('./pulumi/stacks/app')
     const appStackOutput = new AppStack('app-stack', {
       project,
@@ -259,12 +267,8 @@ const main = async () => {
       imageUrl: appEcrImageUrl,
       customDomain,
       appNamespaceName,
-      dbUser,
-      dbPassword,
-      dbName,
-      dbEndpoint,
-      dbPort,
       knativeHttpsIngressGatewayName,
+      ...dbOpts,
     }, { provider: k8sProvider })
     return appStackOutput
   }

@@ -76,6 +76,8 @@ async function handleInit(options: CliOptions) {
     debug,
   } = options
 
+  console.info(`debug=${debug}\n`)
+  
   /**
    * Copy Pulumi files for local management (unless it's development env)
    */
@@ -214,8 +216,8 @@ async function handleApp(options: CliOptions) {
     prodDbPassword,
     debug,
   } = options
-  
-  console.info('debug=', debug)
+
+  console.info(`debug=${debug}\n`)
 
   /**
    * Run Pulumi Automation scripts to set up Kubernetes and deploy all resources
@@ -324,6 +326,8 @@ async function handleDestroy(options: CliOptions) {
     keepCluster,
     debug
   } = options
+
+  console.info(`debug=${debug}\n`)
 
   const projectName = getProjectName()
   const pulumiA = new PulumiAutomation(projectName, {

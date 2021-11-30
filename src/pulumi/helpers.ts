@@ -1,5 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
+import * as pulumi from '@pulumi/pulumi'
 import { exec, execSync } from 'child_process'
 import * as chalk from 'chalk'
 import { ConfigMap } from '@pulumi/pulumi/automation'
@@ -76,4 +77,13 @@ export const setPulumiConfigsViaCli = (orgName: string, stackName: string, confi
     const { value, secret } = configMapVal
     runPulumiStackCmd(orgName, stackName, `pulumi config set ${configMapKey} ${value}${secret ? ' --secret' : ''}`)
   })
+}
+
+export const checkStackExists = (qualifiedStackName: string) => {
+  try {
+    const stackRef = new pulumi.StackReference(qualifiedStackName)
+    return true
+  } catch (err) {
+    return false
+  }
 }
