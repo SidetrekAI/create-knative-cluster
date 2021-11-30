@@ -151,7 +151,13 @@ export const pulumiRun = async ({
     const stack = await Stack.createOrSelect(stackName, ws)
     spinner.succeed(successColor(`Stack '${stackName}' initialized`))
 
-    const handleOutput = (out: string) => logUpdate(`\n${out}`)
+    const handleOutput = (out: string) => {
+      if (debug) {
+        console.info(out)
+      } else {
+        logUpdate(`\n${out}`)
+      }
+    }
 
     if (destroy) {
       // Refresh the stack in case there are manual pre-run commands
