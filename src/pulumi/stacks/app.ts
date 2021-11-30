@@ -5,8 +5,6 @@ import * as awsx from '@pulumi/awsx'
 import * as knative from '../k8s-crds/knative-serving'
 import { KnativeVirtualService } from '../component-resources'
 
-dotenv.config({ path: path.resolve(__dirname, '../../frontend', '.env') })
-
 export interface AppStackArgs {
   project: string,
   stackEnv: string,

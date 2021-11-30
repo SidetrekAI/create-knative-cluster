@@ -19,7 +19,7 @@ export class AppBuildStack extends pulumi.ComponentResource {
       project,
     } = args
 
-    dotenv.config({ path: path.resolve(__dirname, projectRootDir, 'frontend', '.env') })
+    dotenv.config({ path: path.resolve(projectRootDir, 'frontend', '.env') })
 
     /**
      * Build and push images to ECR
