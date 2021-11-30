@@ -224,19 +224,20 @@ const main = async () => {
     const dbUser = cliOptions.createDb ? config.require('db_user') : undefined
     const dbPassword = cliOptions.createDb ? config.requireSecret('db_password').apply(password => password) : undefined
 
+    const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
+
     const appBuildStackRef = cliOptions.build ? new pulumi.StackReference(`${organization}/${project}/app-build`) : undefined
-    const dbStagingStackRef = cliOptions.createDb ? new pulumi.StackReference(`${organization}/${project}/db-staging`) : undefined
-    const dbProdStackRef = cliOptions.createDb ? new pulumi.StackReference(`${organization}/${project}/db-prod`) : undefined
+    const dbStagingStackRef = cliOptions.createDb && stackEnv === 'staging' ? new pulumi.StackReference(`${organization}/${project}/db-staging`) : undefined
+    const dbProdStackRef = cliOptions.createDb && stackEnv === 'prod' ? new pulumi.StackReference(`${organization}/${project}/db-prod`) : undefined
 
     const appEcrImageUrl = appBuildStackRef ? appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string> : cliOptions.imageUrl as string
-    const stagingDbName = dbStagingStackRef && dbStagingStackRef.getOutput('rdsName') as pulumi.Output<string>
-    const stagingDbEndpoint = dbStagingStackRef && dbStagingStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
-    const stagingDbPort = dbStagingStackRef && dbStagingStackRef.getOutput('rdsPort') as pulumi.Output<number>
-    const prodDbName = dbProdStackRef && dbProdStackRef.getOutput('rdsName') as pulumi.Output<string>
-    const prodDbEndpoint = dbProdStackRef && dbProdStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
-    const prodDbPort = dbProdStackRef && dbProdStackRef.getOutput('rdsPort') as pulumi.Output<number>
+    const stagingDbName = dbStagingStackRef && stackEnv === 'staging' && dbStagingStackRef.getOutput('rdsName') as pulumi.Output<string>
+    const stagingDbEndpoint = dbStagingStackRef && stackEnv === 'staging' && dbStagingStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
+    const stagingDbPort = dbStagingStackRef && stackEnv === 'staging' && dbStagingStackRef.getOutput('rdsPort') as pulumi.Output<number>
+    const prodDbName = dbProdStackRef && stackEnv === 'prod' && dbProdStackRef.getOutput('rdsName') as pulumi.Output<string>
+    const prodDbEndpoint = dbProdStackRef && stackEnv === 'prod' && dbProdStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
+    const prodDbPort = dbProdStackRef && stackEnv === 'prod' && dbProdStackRef.getOutput('rdsPort') as pulumi.Output<number>
 
-    const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
     const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
     const dbName = stackEnv === 'prod' ? prodDbName : stagingDbName
     const dbEndpoint = stackEnv === 'prod' ? prodDbEndpoint : stagingDbEndpoint
