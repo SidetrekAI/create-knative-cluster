@@ -227,8 +227,8 @@ const main = async () => {
     const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
 
     const appBuildStackRef = cliOptions.build ? new pulumi.StackReference(`${organization}/${project}/app-build`) : undefined
-    const dbStagingStackRef = cliOptions.createDb && stackEnv === 'staging' ? new pulumi.StackReference(`${organization}/${project}/db-staging`) : undefined
-    const dbProdStackRef = cliOptions.createDb && stackEnv === 'prod' ? new pulumi.StackReference(`${organization}/${project}/db-prod`) : undefined
+    const dbStagingStackRef = (cliOptions.createDb && stackEnv === 'staging') ? new pulumi.StackReference(`${organization}/${project}/db-staging`) : undefined
+    const dbProdStackRef = (cliOptions.createDb && stackEnv === 'prod') ? new pulumi.StackReference(`${organization}/${project}/db-prod`) : undefined
 
     const appEcrImageUrl = appBuildStackRef ? appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string> : cliOptions.imageUrl as string
     const stagingDbName = dbStagingStackRef && stackEnv === 'staging' && dbStagingStackRef.getOutput('rdsName') as pulumi.Output<string>
