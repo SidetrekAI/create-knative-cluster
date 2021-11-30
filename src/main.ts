@@ -229,7 +229,13 @@ const main = async () => {
 
     const appBuildStackRef = cliOptions.build ? new pulumi.StackReference(`${organization}/${project}/app-build`) : undefined    
     const appEcrImageUrl = appBuildStackRef ? appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string> : cliOptions.imageUrl as string
-    if (typeof appEcrImageUrl !== 'string') appEcrImageUrl.apply(t => console.log('appEcrImageUrl', t))
+    if (typeof appEcrImageUrl !== 'string') {
+      console.log('HERE')
+      appEcrImageUrl.apply(t => console.log('appEcrImageUrl', t))
+    } else {
+      console.log('HERE 2')
+      console.log('appEcrImageUrl', appEcrImageUrl)
+    }
 
     const dbStagingStackRef = (cliOptions.createDb && !isProd) ? new pulumi.StackReference(`${organization}/${project}/db-staging`) : undefined
     const stagingDbName = (dbStagingStackRef && !isProd) ? dbStagingStackRef.getOutput('rdsName') as pulumi.Output<string> : undefined
