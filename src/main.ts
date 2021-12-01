@@ -180,6 +180,18 @@ const main = async () => {
     return appBuildStackOutput
   }
 
+  const checkAppBuildStackExists = () => {
+    return checkStackExists(`${organization}/${project}/app-build`)
+  }
+
+  const getAppBuildStackOutputs = () => {
+    const appBuildStackRef = new pulumi.StackReference(`${organization}/${project}/app-build`)
+    const appEcrImageUrl = appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string>
+    console.log('HERE')
+    appEcrImageUrl.apply(t => console.log('appEcrImageUrl', t))
+    return appEcrImageUrl
+  }
+
   /**
    * Stack: app-ns
    */
@@ -217,13 +229,13 @@ const main = async () => {
     return dbStackOutput
   }
 
-  const checkHasDb = (stackEnv: string) => {
+  const checkDbStackExists = (stackEnv: string) => {
     return stackEnv === 'prod' ?
       checkStackExists(`${organization}/${project}/db-prod`) :
       checkStackExists(`${organization}/${project}/db-staging`)
   }
 
-  const getDbOutputs = (stackEnv: string) => {
+  const getDbStackOutputs = (stackEnv: string) => {
     const dbUser = config.require('db_user')
     const dbPassword = config.requireSecret('db_password').apply(password => password)
 
@@ -244,29 +256,18 @@ const main = async () => {
    */
   if (stack === 'app-staging' || stack === 'app-prod') {
     const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
-    const includeDb = cliExecCtx === 'ckc' ? cliOptions.createDb : checkHasDb(stackEnv)
-    console.log('includeDb', includeDb)
-
-    const appBuildStackRef = cliOptions.build ? new pulumi.StackReference(`${organization}/${project}/app-build`) : undefined
-    const appEcrImageUrl = appBuildStackRef ? appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string> : cliOptions.imageUrl as string
-    if (typeof appEcrImageUrl !== 'string') {
-      console.log('HERE')
-      appEcrImageUrl.apply(t => console.log('appEcrImageUrl', t))
-    } else {
-      console.log('HERE 2')
-      console.log('appEcrImageUrl', appEcrImageUrl)
-    }
-
+    
     const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
-    const dbOpts = includeDb ? getDbOutputs(stackEnv) : {}
+    const appEcrImageUrl = checkAppBuildStackExists() ? getAppBuildStackOutputs() : cliOptions.imageUrl as string
+    const dbOpts = checkDbStackExists(stackEnv) ? getDbStackOutputs(stackEnv) : {}
 
     const { AppStack } = await import('./pulumi/stacks/app')
     const appStackOutput = new AppStack('app-stack', {
       project,
       stackEnv,
-      imageUrl: appEcrImageUrl,
       customDomain,
       appNamespaceName,
+      imageUrl: appEcrImageUrl,
       knativeHttpsIngressGatewayName,
       ...dbOpts,
     }, { provider: k8sProvider })

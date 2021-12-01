@@ -8,9 +8,9 @@ import { KnativeVirtualService } from '../component-resources'
 export interface AppStackArgs {
   project: string,
   stackEnv: string,
-  imageUrl: pulumi.Output<string> | string,
   customDomain: string,
   appNamespaceName: string,
+  imageUrl: pulumi.Output<string> | string,
   dbUser?: string,
   dbPassword?: pulumi.Output<string>,
   dbName?: pulumi.Output<string>,
@@ -26,9 +26,9 @@ export class AppStack extends pulumi.ComponentResource {
     const {
       project,
       stackEnv,
-      imageUrl,
       customDomain,
       appNamespaceName,
+      imageUrl,
       dbUser,
       dbPassword,
       dbName,

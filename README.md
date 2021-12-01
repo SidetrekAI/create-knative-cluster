@@ -1,7 +1,7 @@
 # Create Knative Cluster
 Create Kubernetes clusters with preinstalled Knative for easy app serving.
 
-It's like "Create React App", but for setting up Kubernetes cluster with helpful features preinstalled (node/pod autoscaling, https, monitoring, app serving, etc). It uses Pulumi to programmatically create a Kubernetes cluster and provision all the resources required to serve an app with a single command. ✨
+It's like "Create React App", but for setting up Kubernetes cluster with helpful features preinstalled (node/pod autoscaling, https, monitoring, app serving, etc). It uses Pulumi to programmatically create a Kubernetes cluster and provision all the resources required to serve an app with a single command (almost). ✨
 
 Once the cluster is set up, you can use Pulumi to manage or add resources using the familiar Javascipt/Typescript. Or, you can directly manipulate Kubernetes resources using kubectl if you prefer.
 
@@ -16,6 +16,7 @@ If something doesn't work, please [file an issue](https://github.com/sidetrekAI/
 
 
 ## Overview
+If you'd like to get started right away, see [Creating Knative Cluster](#creating-knative-cluster) section or [Tutorials](#tutorials) section. Please review the [cost considerations](#cost-considerations) before using this project.
 
 ### Motivation
 It is far too much work to setup a working Kubernetes cluster with everything required to serve even a simple web app. Despite the introduction of interesting DevOps automation tools like Pulumi:
@@ -54,7 +55,7 @@ Please check out the Knative docs [here](https://knative.dev/docs/) for more det
     * For more information on Istio VirtualService, see [Istio docs](https://istio.io/latest/docs/reference/config/networking/virtual-service/)
     * To understand the internals of Create Knative Cluster better, see the [Internals](#internals) section
 
-### Cost considerations
+### <a name="cost-considerations"></a>Cost considerations
 This project is completely open-source but the resources it provisions will cost you in potentially two ways.
 1. Pulumi: Whether you're on a free or paid plan, the default setup should cost you nothing. On a paid plan, it'll come pretty close as create-knative-cluster will provision 200+ resources.
 2. AWS: With 1x EKS cluster (~$70/mo), 4x t3.medium EC2 instances (~$120/mo), the default setup will cost you ~$200/mo. If you use the RDS option, that'll cost you extra depending on your storage requirements.
@@ -65,7 +66,7 @@ This project is completely open-source but the resources it provisions will cost
 ### Pre-requisites
 1. Install `aws` cli by following the instructions [here](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 2. Create a Pulumi AWS Typescript project
-   * Follow the instructions in [Pulumi docs](https://www.pulumi.com/docs/get-started/aws/begin/) to set up Pulumi and AWS credentials
+   * Follow the instructions in [Pulumi docs](https://www.pulumi.com/docs/get-started/aws/begin/) to set up Pulumi and AWS credentials - Pulumi only provides a method for generating a new project in an empty directory, but if you'd like to add Pulumi to an existing project, you can copy over the files and packages to the existing project.
 3. Install `kubectl`
 4. Install npm dependencies: `npm i @pulumi/aws @pulumi/awsx @pulumi/eks @pulumi/kubernetes @pulumi/kubernetes-cert-manager @pulumi/pulumi`
 5. Set up a custom domain
