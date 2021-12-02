@@ -24,6 +24,7 @@ const gradient = require('gradient-string')
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
 
 const copyPulumiFiles = async () => {
+  console.log('__dirname', __dirname)
   await fs.copy(path.resolve(__dirname, '../src/main.ts'), path.resolve(cwd, 'index.ts'))
   await fs.copy(path.resolve(__dirname, '../src/pulumi'), path.resolve(cwd, 'pulumi'))
 }
@@ -310,13 +311,13 @@ async function handleApp(options: CliOptions) {
 
 program
   .command('copy-pulumi-files')
-  .option('--debug', 'show logs', false)
   .description('copy Pulumi files for local management')
   .showHelpAfterError('(add --help for additional information)')
   .action(handleCopyPulumiFiles)
 
 async function handleCopyPulumiFiles(options: CliOptions) {
   if (process.env.CKC_CLI_ENV !== 'development') {
+    console.info(infoColor('\nCopying Pulumi files to project root folder for local management...\n'))
     copyPulumiFiles()
   }
 }
