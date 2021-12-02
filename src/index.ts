@@ -23,7 +23,7 @@ const successColor = getColor('success')
 const gradient = require('gradient-string')
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
 
-const copyLocalPulumiFiles = async () => {
+const copyPulumiFiles = async () => {
   await fs.copy(path.resolve(__dirname, '../src/main.ts'), path.resolve(cwd, 'index.ts'))
   await fs.copy(path.resolve(__dirname, '../src/pulumi'), path.resolve(cwd, 'pulumi'))
 }
@@ -88,7 +88,7 @@ async function handleInit(options: CliOptions) {
   const spinner = ora().start(infoColor(`Copying Pulumi files to project folder...`))
 
   if (process.env.CKC_CLI_ENV !== 'development') {
-    copyLocalPulumiFiles()
+    copyPulumiFiles()
   }
 
   spinner.succeed(successColor('Successfully copied Pulumi files to project folder'))
@@ -309,14 +309,16 @@ async function handleApp(options: CliOptions) {
 
 
 program
-  .command('local')
+  .command('copy-pulumi-files')
   .option('--debug', 'show logs', false)
   .description('copy Pulumi files for local management')
   .showHelpAfterError('(add --help for additional information)')
-  .action(handleCopyLocalPulumiFiles)
+  .action(handleCopyPulumiFiles)
 
-async function handleCopyLocalPulumiFiles(options: CliOptions) {
-  copyLocalPulumiFiles()
+async function handleCopyPulumiFiles(options: CliOptions) {
+  if (process.env.CKC_CLI_ENV !== 'development') {
+    copyPulumiFiles()
+  }
 }
 
 program
