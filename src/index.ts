@@ -24,7 +24,6 @@ const gradient = require('gradient-string')
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
 
 const copyPulumiFiles = async () => {
-  console.log('__dirname', __dirname)
   await fs.copy(path.resolve(__dirname, '../src/main.ts'), path.resolve(cwd, 'index.ts'))
   await fs.copy(path.resolve(__dirname, '../src/pulumi'), path.resolve(cwd, 'pulumi'))
 }

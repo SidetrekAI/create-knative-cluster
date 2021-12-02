@@ -180,17 +180,13 @@ const main = async () => {
     return appBuildStackOutput
   }
 
-  const appBuildStackRef = new pulumi.StackReference(`${organization}/${project}/app-build`)
-
   const checkAppBuildStackExists = () => {
     return checkStackExists(`${organization}/${project}/app-build`)
   }
 
-  const getAppBuildStackOutputs = () => {
-    const appEcrImageUrl = appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string>
-    console.log('HERE')
-    appEcrImageUrl.apply(t => console.log('appEcrImageUrl', t))
-    return appEcrImageUrl
+  const getAppEcrImageUrl = () => {
+    const appBuildStackRef = new pulumi.StackReference(`${organization}/${project}/app-build`)
+    return appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string>
   }
 
   /**
@@ -230,9 +226,6 @@ const main = async () => {
     return dbStackOutput
   }
 
-  const dbStagingStackRef = new pulumi.StackReference(`${organization}/${project}/db-staging`)
-  const dbProdStackRef = new pulumi.StackReference(`${organization}/${project}/db-prod`)
-
   const checkDbStackExists = (stackEnv: string) => {
     return stackEnv === 'prod' ?
       checkStackExists(`${organization}/${project}/db-prod`) :
@@ -243,7 +236,9 @@ const main = async () => {
     const dbUser = config.require('db_user')
     const dbPassword = config.requireSecret('db_password').apply(password => password)
 
-    const dbStackRef = stackEnv === 'prod' ? dbProdStackRef : dbStagingStackRef
+    const dbStackRef = stackEnv === 'prod' ?
+      new pulumi.StackReference(`${organization}/${project}/db-prod`) :
+      new pulumi.StackReference(`${organization}/${project}/db-staging`)
 
     const dbName = dbStackRef.getOutput('rdsName') as pulumi.Output<string>
     const dbEndpoint = dbStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
@@ -258,9 +253,9 @@ const main = async () => {
    */
   if (stack === 'app-staging' || stack === 'app-prod') {
     const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
-    
+
     const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
-    const appEcrImageUrl = checkAppBuildStackExists() ? getAppBuildStackOutputs() : cliOptions.imageUrl as string
+    const appEcrImageUrl = checkAppBuildStackExists() ? getAppEcrImageUrl() : cliOptions.imageUrl as string
     const dbOpts = checkDbStackExists(stackEnv) ? getDbStackOutputs(stackEnv) : {}
 
     const { AppStack } = await import('./pulumi/stacks/app')
