@@ -130,7 +130,6 @@ Here's an example of `Dockerfile.prod` assuming your react app is in `/frontend`
 # Build stage
 FROM node:16-alpine3.13 AS builder
 WORKDIR /app
-
 COPY ./frontend/package*.json ./
 RUN npm i
 COPY ./frontend .

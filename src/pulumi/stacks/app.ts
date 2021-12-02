@@ -6,11 +6,11 @@ import * as knative from '../k8s-crds/knative-serving'
 import { KnativeVirtualService } from '../component-resources'
 
 export interface AppStackArgs {
+  projectRootPath: string,
   project: string,
   stackEnv: string,
   customDomain: string,
   appNamespaceName: string,
-  imageUrl: pulumi.Output<string> | string,
   dbUser?: string,
   dbPassword?: pulumi.Output<string>,
   dbName?: pulumi.Output<string>,
@@ -24,11 +24,11 @@ export class AppStack extends pulumi.ComponentResource {
     super('custom:stack:AppStack', name, {}, opts)
 
     const {
+      projectRootPath,
       project,
       stackEnv,
       customDomain,
       appNamespaceName,
-      imageUrl,
       dbUser,
       dbPassword,
       dbName,
@@ -38,6 +38,14 @@ export class AppStack extends pulumi.ComponentResource {
     } = args
 
     const isProduction = stackEnv === 'prod'
+
+    /**
+     * Build and push images to ECR
+     */
+    const appImage = awsx.ecr.buildAndPushImage(`${project}-app-image`, {
+      context: projectRootPath,
+      dockerfile: './Dockerfile.prod',
+    })
 
     // Deploy Knative Service
     const appKSvcName = `app-ksvc`
@@ -60,7 +68,7 @@ export class AppStack extends pulumi.ComponentResource {
           },
           spec: {
             containers: [{
-              image: imageUrl,
+              image: appImage.image(),
               env: [
                 { name: 'NODE_ENV', value: isProduction ? 'production' : 'staging' },
                 ...(dbUser ? [{ name: 'DB_USER', value: dbUser }] : []),

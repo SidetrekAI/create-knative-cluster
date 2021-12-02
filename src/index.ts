@@ -187,8 +187,9 @@ program
   .requiredOption('--aws-region <aws region>', 'aws region; i.e. us-west-1')
   .requiredOption('--pulumi-organization <Pulumi account/organization>', 'name of your Pulumi account (if free plan) or organization (if paid plan)')
   .requiredOption('--custom-domain <custom domain>', 'your custom domain; i.e. your-domain.com')
-  .option('--build', 'whether to build/push app to ECR; defaults to false', false)
-  .option('--image-url <image url>', 'Docker image url - if --build option is not set, this must be passed in') // TODO: defaults to hello world create react + express app
+  // .option('--build', 'whether to build/push app to ECR; defaults to false', false)
+  // .option('--image-url <image url>', 'Docker image url - if --build option is not set, this must be passed in') // TODO: defaults to hello world create react + express app
+  // .option('--frontend-env-path', 'path to .env file for frontend env variables (i.e. REACT_APP_* env variables)') // TODO: hardcoded for now
   .option('--create-db', 'create an RDS instance', false)
   .option('--staging-db-user <staging DB user>', 'AWS RDS postgres db user name; defaults to ckcadmin', 'ckcadmin')
   .option('--staging-db-password <staging DB user>', 'AWS RDS postgres db password; defaults to ckcadminpass', 'ckcadminpass')
@@ -261,11 +262,6 @@ async function handleApp(options: CliOptions) {
    * 
    *    NOTE: order matters
    */
-
-  // Build and push app image to ECR
-  if (build) {
-    await pulumiA.stackUp('app-build', { createPulumiProgram: () => mainPulumiProgram })
-  }
 
   // Create namespaces for staging/prod apps
   await pulumiA.stackUp('app-ns', { createPulumiProgram: () => mainPulumiProgram })
@@ -382,9 +378,6 @@ async function handleDestroy(options: CliOptions) {
 
   // Destroy app namespaces
   await pulumiA.stackDestroy('app-ns', { remove: removeStacks })
-
-  // Destroy app build
-  await pulumiA.stackDestroy('app-build', { remove: removeStacks })
 
   // Destroy monitoring
   await pulumiA.stackDestroy('kube-prometheus-stack', { remove: removeStacks })

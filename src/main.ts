@@ -167,29 +167,6 @@ const main = async () => {
   }
 
   /**
-   * Stack: app-build
-   */
-  if (stack === 'app-build') {
-    const projectRootDir = cliExecCtx === 'ckc' ? cwd : path.resolve(__dirname)
-
-    const { AppBuildStack } = await import('./pulumi/stacks/app-build')
-    const appBuildStackOutput = new AppBuildStack('app-ns-stack', {
-      projectRootDir,
-      project,
-    }, { provider: k8sProvider })
-    return appBuildStackOutput
-  }
-
-  const checkAppBuildStackExists = () => {
-    return checkStackExists(`${organization}/${project}/app-build`)
-  }
-
-  const getAppEcrImageUrl = () => {
-    const appBuildStackRef = new pulumi.StackReference(`${organization}/${project}/app-build`)
-    return appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string>
-  }
-
-  /**
    * Stack: app-ns
    */
   if (stack === 'app-ns') {
@@ -252,19 +229,19 @@ const main = async () => {
    * Stack: app-prod
    */
   if (stack === 'app-staging' || stack === 'app-prod') {
+    const projectRootPath = cliExecCtx === 'ckc' ? cwd : path.resolve(__dirname)
     const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
 
     const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
-    const appEcrImageUrl = checkAppBuildStackExists() ? getAppEcrImageUrl() : cliOptions.imageUrl as string
     const dbOpts = checkDbStackExists(stackEnv) ? getDbStackOutputs(stackEnv) : {}
 
     const { AppStack } = await import('./pulumi/stacks/app')
     const appStackOutput = new AppStack('app-stack', {
+      projectRootPath,
       project,
       stackEnv,
       customDomain,
       appNamespaceName,
-      imageUrl: appEcrImageUrl,
       knativeHttpsIngressGatewayName,
       ...dbOpts,
     }, { provider: k8sProvider })

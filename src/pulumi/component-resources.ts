@@ -168,7 +168,7 @@ export class KnativeOperator extends pulumi.ComponentResource {
       files: `https://github.com/knative/operator/releases/download/knative-v${version}/operator.yaml`,
     }, { parent: this })
 
-    // // HACK: try locally
+    // // HACK: try locally (Circular error issue)
     // // Install knative operator
     // const knativeOperator = new k8s.yaml.ConfigGroup(name, {
     //   files: path.resolve(process.cwd(), 'src/pulumi/knative-operator.yaml'),
@@ -214,6 +214,11 @@ export class KnativeServing extends pulumi.ComponentResource {
         namespace: knativeServingNamespace.metadata.name,
       },
       spec: {
+        additionalManifests: [
+          // this will make sure config-certmanager will be managed by Knative Serving CR
+          { URL: 'https://github.com/knative/net-certmanager/releases/download/v0.26.0/release.yaml' }, 
+          { URL: 'https://github.com/knative/serving/releases/download/v0.26.0/serving-nscert.yaml' }, 
+        ],
         config: { // you can edit all ConfigMaps in knative operator namespace here
           domain: { // set up a custom domain
             [customDomain]: '',
@@ -622,15 +627,15 @@ export class CertManager extends pulumi.ComponentResource {
       }
     }, { parent: this, dependsOn: [certManager] })
 
-    // Install net-certmanager-controller deployment
-    const netCertManagerController = new k8s.yaml.ConfigGroup('net-certmanager-controller', {
-      files: 'https://github.com/knative/net-certmanager/releases/download/v0.26.0/release.yaml',
-    }, { parent: this, dependsOn: [certManager] })
+    // // Install net-certmanager-controller deployment
+    // const netCertManagerController = new k8s.yaml.ConfigGroup('net-certmanager-controller', {
+    //   files: 'https://github.com/knative/net-certmanager/releases/download/v0.26.0/release.yaml',
+    // }, { parent: this, dependsOn: [certManager] })
 
-    // Install net-nscert-controller component
-    const netNscertController = new k8s.yaml.ConfigGroup('net-nscert-controller', {
-      files: 'https://github.com/knative/serving/releases/download/v0.26.0/serving-nscert.yaml',
-    }, { parent: this, dependsOn: [certManager] })
+    // // Install net-nscert-controller component
+    // const netNscertController = new k8s.yaml.ConfigGroup('net-nscert-controller', {
+    //   files: 'https://github.com/knative/serving/releases/download/v0.26.0/serving-nscert.yaml',
+    // }, { parent: this, dependsOn: [certManager] })
 
     this.registerOutputs()
   }
