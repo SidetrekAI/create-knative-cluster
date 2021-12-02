@@ -23,6 +23,11 @@ const successColor = getColor('success')
 const gradient = require('gradient-string')
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
 
+const copyLocalPulumiFiles = async () => {
+  await fs.copy(path.resolve(__dirname, '../src/main.ts'), path.resolve(cwd, 'index.ts'))
+  await fs.copy(path.resolve(__dirname, '../src/pulumi'), path.resolve(cwd, 'pulumi'))
+}
+
 type CliOptions = {
   [key: string]: any,
 }
@@ -46,7 +51,6 @@ program
   .description('create a Knative cluster in AWS EKS using Pulumi')
   .showHelpAfterError('(add --help for additional information)')
   .action(handleInit)
-
 
 /**
  * STRATEGY
@@ -77,15 +81,14 @@ async function handleInit(options: CliOptions) {
   } = options
 
   console.info(`debug=${debug}\n`)
-  
+
   /**
    * Copy Pulumi files for local management (unless it's development env)
    */
   const spinner = ora().start(infoColor(`Copying Pulumi files to project folder...`))
 
   if (process.env.CKC_CLI_ENV !== 'development') {
-    await fs.copy(path.resolve(__dirname, '../src/main.ts'), path.resolve(cwd, 'index.ts'))
-    await fs.copy(path.resolve(__dirname, '../src/pulumi'), path.resolve(cwd, 'pulumi'))
+    copyLocalPulumiFiles()
   }
 
   spinner.succeed(successColor('Successfully copied Pulumi files to project folder'))
@@ -304,6 +307,17 @@ async function handleApp(options: CliOptions) {
   process.exit(0)
 }
 
+
+program
+  .command('local')
+  .option('--debug', 'show logs', false)
+  .description('copy Pulumi files for local management')
+  .showHelpAfterError('(add --help for additional information)')
+  .action(handleCopyLocalPulumiFiles)
+
+async function handleCopyLocalPulumiFiles(options: CliOptions) {
+  copyLocalPulumiFiles()
+}
 
 program
   .command('destroy')

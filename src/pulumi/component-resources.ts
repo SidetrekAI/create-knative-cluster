@@ -161,13 +161,12 @@ export class KnativeOperator extends pulumi.ComponentResource {
     /**
      * Install knative operator
      * 
-     *    IMPORTANT: not 100% sure yet, but replaceOnChanges option seems to prevent the Circular error
-     *               that happens when Knative Operator stack is run twice - Pulumi attempts to destroy 
-     *               ConfigGroups and rebuild them which causes this Circular error (hangs while deleting)
+     *    CAVEAT: There's a Circular error that happens when Knative Operator stack is run twice - Pulumi attempts
+     *            to destroy ConfigGroups and rebuild them which causes this Circular error (hangs while deleting)
      */
     const knativeOperator = new k8s.yaml.ConfigGroup(name, {
       files: `https://github.com/knative/operator/releases/download/knative-v${version}/operator.yaml`,
-    }, { parent: this, replaceOnChanges: ['*'] })
+    }, { parent: this })
 
     // // HACK: try locally
     // // Install knative operator
