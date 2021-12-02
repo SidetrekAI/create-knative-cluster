@@ -180,12 +180,13 @@ const main = async () => {
     return appBuildStackOutput
   }
 
+  const appBuildStackRef = new pulumi.StackReference(`${organization}/${project}/app-build`)
+
   const checkAppBuildStackExists = () => {
     return checkStackExists(`${organization}/${project}/app-build`)
   }
 
   const getAppBuildStackOutputs = () => {
-    const appBuildStackRef = new pulumi.StackReference(`${organization}/${project}/app-build`)
     const appEcrImageUrl = appBuildStackRef.getOutput('imageUrl') as pulumi.Output<string>
     console.log('HERE')
     appEcrImageUrl.apply(t => console.log('appEcrImageUrl', t))
@@ -229,6 +230,9 @@ const main = async () => {
     return dbStackOutput
   }
 
+  const dbStagingStackRef = new pulumi.StackReference(`${organization}/${project}/db-staging`)
+  const dbProdStackRef = new pulumi.StackReference(`${organization}/${project}/db-prod`)
+
   const checkDbStackExists = (stackEnv: string) => {
     return stackEnv === 'prod' ?
       checkStackExists(`${organization}/${project}/db-prod`) :
@@ -239,9 +243,7 @@ const main = async () => {
     const dbUser = config.require('db_user')
     const dbPassword = config.requireSecret('db_password').apply(password => password)
 
-    const dbStackRef = stackEnv === 'prod' ?
-      new pulumi.StackReference(`${organization}/${project}/db-prod`) :
-      new pulumi.StackReference(`${organization}/${project}/db-staging`)
+    const dbStackRef = stackEnv === 'prod' ? dbProdStackRef : dbStagingStackRef
 
     const dbName = dbStackRef.getOutput('rdsName') as pulumi.Output<string>
     const dbEndpoint = dbStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
