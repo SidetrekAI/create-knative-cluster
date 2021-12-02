@@ -81,7 +81,7 @@ export const setPulumiConfigsViaCli = (orgName: string, stackName: string, confi
 
 export const checkStackExists = (qualifiedStackName: string) => {
   try {
-    const stackRef = new pulumi.StackReference(qualifiedStackName)
+    new pulumi.StackReference(qualifiedStackName)
     return true
   } catch (err) {
     return false
