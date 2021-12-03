@@ -26,10 +26,10 @@ const main = async () => {
   const knativeHttpsIngressGatewayName = 'knative-https-ingress-gateway'
   const kubePrometheusStackNamespaceName = 'kube-prometheus-stack'
 
-  // DB related
-  const dbUser = config.require('db_user')
-  const dbPassword = config.requireSecret('db_password').apply(password => password)
-  const getDbStackOutputs = (dbStackRef: any) => {
+  // DB helpers
+  const getDbStackOutputs = (config: pulumi.Config, dbStackRef: any) => {
+    const dbUser = config.require('db_user')
+    const dbPassword = config.requireSecret('db_password').apply(password => password)
     const dbName = dbStackRef.getOutput('rdsName') as pulumi.Output<string>
     const dbEndpoint = dbStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
     const dbPort = dbStackRef.getOutput('rdsPort') as pulumi.Output<number>
@@ -193,6 +193,9 @@ const main = async () => {
    * Stack: db-staging
    */
   if (stack === 'db-staging') {
+    const dbUser = config.require('db_user')
+    const dbPassword = config.requireSecret('db_password').apply(password => password)
+  
     const { DbStack } = await import('./pulumi/stacks/db')
     const dbStagingStackOutput = new DbStack('db-staging-stack', {
       dbUser,
@@ -216,7 +219,7 @@ const main = async () => {
    * Stack: app-staging
    */
   if (stack === 'app-staging') {
-    const dbOpts = dbStagingStackRef ? getDbStackOutputs(dbStagingStackRef) : {}
+    const dbOpts = dbStagingStackRef ? getDbStackOutputs(config, dbStagingStackRef) : {}
 
     const { AppStack } = await import('./pulumi/stacks/app')
     const appStackOutput = new AppStack('app-staging-stack', {
@@ -235,6 +238,9 @@ const main = async () => {
    * Stack: db-prod
    */
   if (stack === 'db-prod') {
+    const dbUser = config.require('db_user')
+    const dbPassword = config.requireSecret('db_password').apply(password => password)
+
     const { DbStack } = await import('./pulumi/stacks/db')
     const dbProdStackOutput = new DbStack('db-prod-stack', {
       dbUser,
@@ -258,7 +264,7 @@ const main = async () => {
    * Stack: app-staging
    */
   if (stack === 'app-prod') {
-    const dbOpts = dbProdStackRef ? getDbStackOutputs(dbProdStackRef) : {}
+    const dbOpts = dbProdStackRef ? getDbStackOutputs(config, dbProdStackRef) : {}
 
     const { AppStack } = await import('./pulumi/stacks/app')
     const appStackOutput = new AppStack('app-prod-stack', {
