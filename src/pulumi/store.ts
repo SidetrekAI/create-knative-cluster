@@ -31,4 +31,28 @@ simpleStore.setDefaultStates({
   globalPulumiConfigs: [],
 })
 
-export { simpleStore }
+// Stack reference store
+
+type StackReferenceStoreObj = {
+  [key: string]: any
+}
+
+export class StackReferenceStore {
+  store: StackReferenceStoreObj
+
+  constructor() {
+    this.store = {}
+  }
+
+  setState(stackName: string, stackReferenceInstance: any) {
+    this.store[stackName] = stackReferenceInstance
+  }
+
+  getState(stackName: string) {
+    return this.store[stackName]
+  }
+}
+
+const stackReferenceStore = new StackReferenceStore()
+
+export { simpleStore, stackReferenceStore }

@@ -5,8 +5,16 @@ import { exec, execSync } from 'child_process'
 import * as chalk from 'chalk'
 import { ConfigMap } from '@pulumi/pulumi/automation'
 import * as yaml from 'js-yaml'
+import { stackReferenceStore } from './store'
 
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
+
+export const kebabCaseToCamelCase = (kebabStr: string) => {
+  return kebabStr.split('-').map((w, i) => {
+    if (i == 0) { return w.toLowerCase() }
+    return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+  }).join('')
+}
 
 export const getProjectName = () => {
   const pulumiYamlFile = path.resolve(cwd, 'Pulumi.yaml')
@@ -79,11 +87,7 @@ export const setPulumiConfigsViaCli = (orgName: string, stackName: string, confi
   })
 }
 
-export const checkStackExists = (qualifiedStackName: string) => {
-  try {
-    new pulumi.StackReference(qualifiedStackName)
-    return true
-  } catch (err) {
-    return false
-  }
+export const checkStackExists = (stackName: string) => {
+  const stackRef = stackReferenceStore.getState(stackName)
+  return stackRef ? true : false
 }
