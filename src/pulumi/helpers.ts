@@ -5,7 +5,6 @@ import { exec, execSync } from 'child_process'
 import * as chalk from 'chalk'
 import { ConfigMap } from '@pulumi/pulumi/automation'
 import * as yaml from 'js-yaml'
-import { stackReferenceStore } from './store'
 
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
 
@@ -85,9 +84,4 @@ export const setPulumiConfigsViaCli = (orgName: string, stackName: string, confi
     const { value, secret } = configMapVal
     runPulumiStackCmd(orgName, stackName, `pulumi config set ${configMapKey} ${value}${secret ? ' --secret' : ''}`)
   })
-}
-
-export const checkStackExists = (stackName: string) => {
-  const stackRef = stackReferenceStore.get(stackName)
-  return stackRef ? true : false
 }

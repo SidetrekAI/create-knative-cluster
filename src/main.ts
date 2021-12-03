@@ -4,7 +4,6 @@ import * as aws from '@pulumi/aws'
 import * as awsx from '@pulumi/awsx'
 import * as k8s from '@pulumi/kubernetes'
 import { simpleStore } from './pulumi/store'
-import { checkStackExists } from './pulumi/helpers'
 
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
 const cliExecCtx = simpleStore.getState('cliExecutionContext')
