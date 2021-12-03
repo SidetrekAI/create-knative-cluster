@@ -282,21 +282,21 @@ async function handleApp(options: CliOptions) {
   }
   await pulumiA.stackUp('app-staging', { createPulumiProgram: () => mainPulumiProgram, configMap: appStagingStackConfigMap })
 
-  // Set up prod db and app
-  if (createDb) {
-    const dbProdStackConfigMap = {
-      'db_user': { value: prodDbUser },
-      'db_password': { value: prodDbPassword, secret: true },
-    }
-    await pulumiA.stackUp('db-prod', { createPulumiProgram: () => mainPulumiProgram, configMap: dbProdStackConfigMap })
-  }
+  // // Set up prod db and app
+  // if (createDb) {
+  //   const dbProdStackConfigMap = {
+  //     'db_user': { value: prodDbUser },
+  //     'db_password': { value: prodDbPassword, secret: true },
+  //   }
+  //   await pulumiA.stackUp('db-prod', { createPulumiProgram: () => mainPulumiProgram, configMap: dbProdStackConfigMap })
+  // }
 
-  const appProdStackConfigMap = {
-    'imageUrl': { value: imageUrl },
-    'db_user': { value: prodDbUser },
-    'db_password': { value: prodDbPassword, secret: true },
-  }
-  await pulumiA.stackUp('app-prod', { createPulumiProgram: () => mainPulumiProgram, configMap: appProdStackConfigMap })
+  // const appProdStackConfigMap = {
+  //   'imageUrl': { value: imageUrl },
+  //   'db_user': { value: prodDbUser },
+  //   'db_password': { value: prodDbPassword, secret: true },
+  // }
+  // await pulumiA.stackUp('app-prod', { createPulumiProgram: () => mainPulumiProgram, configMap: appProdStackConfigMap })
 
   console.info(gradient.fruit(`\n🦄 Successfully created app!!!\n`))
   console.timeEnd('Done in')

@@ -220,6 +220,8 @@ const main = async () => {
    */
   if (stack === 'app-staging') {
     const dbOpts = dbStagingStackRef ? getDbStackOutputs(config, dbStagingStackRef) : {}
+    console.log('projectRootPath', projectRootPath)
+    console.log('dbOpts', dbOpts)
 
     const { AppStack } = await import('./pulumi/stacks/app')
     const appStackOutput = new AppStack('app-staging-stack', {
@@ -265,7 +267,7 @@ const main = async () => {
    */
   if (stack === 'app-prod') {
     const dbOpts = dbProdStackRef ? getDbStackOutputs(config, dbProdStackRef) : {}
-
+    
     const { AppStack } = await import('./pulumi/stacks/app')
     const appStackOutput = new AppStack('app-prod-stack', {
       projectRootPath,

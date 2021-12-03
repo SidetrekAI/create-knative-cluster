@@ -15,7 +15,7 @@ export interface AppStackArgs {
   dbPassword?: pulumi.Output<string>,
   dbName?: pulumi.Output<string>,
   dbEndpoint?: pulumi.Output<string>,
-  dbPort?: pulumi.Output<number>,
+  dbPort?: pulumi.Output<string>,
   knativeHttpsIngressGatewayName: string,
 }
 
@@ -75,7 +75,7 @@ export class AppStack extends pulumi.ComponentResource {
                 ...(dbPassword ? [{ name: 'DB_PASSWORD', value: dbPassword }] : []),
                 ...(dbName ? [{ name: 'DB_NAME', value: dbName }] : []),
                 ...(dbEndpoint ? [{ name: 'DB_ENDPOINT', value: dbEndpoint }] : []),
-                ...(dbPort ? [{ name: 'DB_PORT', value: dbPort }] : []),
+                ...(dbPort ? [{ name: 'DB_PORT', value: pulumi.interpolate`${dbPort.toString()}` }] : []), // Knative can't seem to parse number type in env
                 // {
                 //   name: 'DATABASE_URL',
                 //   value: pulumi.interpolate`postgresql://${dbUser}:${dbPassword}@${dbEndpoint}:${dbPort}/${dbName}?schema=public`
