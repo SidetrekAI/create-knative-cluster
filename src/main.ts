@@ -3,8 +3,8 @@ import * as pulumi from '@pulumi/pulumi'
 import * as aws from '@pulumi/aws'
 import * as awsx from '@pulumi/awsx'
 import * as k8s from '@pulumi/kubernetes'
-import { simpleStore, stackReferenceStore } from './pulumi/store'
-import { checkStackExists, kebabCaseToCamelCase } from './pulumi/helpers'
+import { simpleStore } from './pulumi/store'
+import { checkStackExists } from './pulumi/helpers'
 
 const cwd = process.cwd() // dir where the cli is run (i.e. project root)
 const cliExecCtx = simpleStore.getState('cliExecutionContext')
@@ -15,8 +15,8 @@ const main = async () => {
   const config = new pulumi.Config()
 
   const project = pulumi.getProject()
+  const projectRootPath = cliExecCtx === 'ckc' ? cwd : path.resolve(__dirname)
   const stack = cliExecCtx === 'ckc' ? simpleStore.getState('currentStack') : pulumi.getStack()
-
   const organization = config.require('pulumi_organization')
   const customDomain = config.require('custom_domain')
   const { accountId: awsAccountId } = await aws.getCallerIdentity({})
@@ -26,6 +26,16 @@ const main = async () => {
   const appProdNamespaceName = 'app-prod'
   const knativeHttpsIngressGatewayName = 'knative-https-ingress-gateway'
   const kubePrometheusStackNamespaceName = 'kube-prometheus-stack'
+
+  // DB related
+  const dbUser = config.require('db_user')
+  const dbPassword = config.requireSecret('db_password').apply(password => password)
+  const getDbStackOutputs = (dbStackRef: any) => {
+    const dbName = dbStackRef.getOutput('rdsName') as pulumi.Output<string>
+    const dbEndpoint = dbStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
+    const dbPort = dbStackRef.getOutput('rdsPort') as pulumi.Output<number>
+    return { dbUser, dbPassword, dbName, dbEndpoint, dbPort }
+  }
 
   // /**
   //  * Stack: dev
@@ -52,6 +62,8 @@ const main = async () => {
   }
 
   const clusterStackRef = new pulumi.StackReference(`${organization}/${project}/cluster`)
+  const vpc = clusterStackRef.getOutput('vpc') as unknown as awsx.ec2.Vpc
+  const vpcPublicSubnetIds = clusterStackRef.getOutput('vpcPublicSubnetIds')
   const kubeconfig = clusterStackRef.getOutput('kubeconfig') as pulumi.Output<any>
   const k8sProvider = new k8s.Provider('k8s-provider', { kubeconfig })
 
@@ -180,66 +192,82 @@ const main = async () => {
 
   /**
    * Stack: db-staging
-   * Stack: db-prod
    */
-  if (stack === 'db-staging' || stack === 'db-prod') {
-    const dbUser = config.require('db_user')
-    const dbPassword = config.requireSecret('db_password').apply(password => password)
-
-    const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
-    const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
-    const vpc = clusterStackRef.getOutput('vpc') as unknown as awsx.ec2.Vpc
-    const vpcPublicSubnetIds = clusterStackRef.getOutput('vpcPublicSubnetIds')
-
+  if (stack === 'db-staging') {
     const { DbStack } = await import('./pulumi/stacks/db')
-    const dbStackOutput = new DbStack('app-svc-stack', {
+    const dbStagingStackOutput = new DbStack('db-staging-stack', {
       dbUser,
       dbPassword,
-      stackEnv,
-      appNamespaceName,
+      stackEnv: 'staging',
+      appNamespaceName: appStagingNamespaceName,
       vpc,
       vpcPublicSubnetIds,
     }, { provider: k8sProvider })
-
-    // Save the StackReference instance
-    const dbStackRef = new pulumi.StackReference(`${organization}/${project}/${stack}`)
-    stackReferenceStore.setState(stack, dbStackRef)
-
-    return dbStackOutput
+    return dbStagingStackOutput
   }
 
-  const getDbStackOutputs = (stackName: string) => {
-    const dbUser = config.require('db_user')
-    const dbPassword = config.requireSecret('db_password').apply(password => password)
-
-    const dbStackRef = stackReferenceStore.getState(stackName)
-    const dbName = dbStackRef.getOutput('rdsName') as pulumi.Output<string>
-    const dbEndpoint = dbStackRef.getOutput('rdsEndpoint') as pulumi.Output<string>
-    const dbPort = dbStackRef.getOutput('rdsPort') as pulumi.Output<number>
-
-    return { dbUser, dbPassword, dbName, dbEndpoint, dbPort }
+  let dbStagingStackRef
+  try {
+    dbStagingStackRef = new pulumi.StackReference(`${organization}/${project}/db-staging`)
+  } catch (err) {
+    console.log('dbStagingStackRef err', err)
   }
 
   /**
    * Stack: app-staging
-   * Stack: app-prod
    */
-  if (stack === 'app-staging' || stack === 'app-prod') {
-    const projectRootPath = cliExecCtx === 'ckc' ? cwd : path.resolve(__dirname)
-    const stackEnv = stack.includes('prod') ? 'prod' : 'staging'
-
-    const appNamespaceName = stackEnv === 'prod' ? appProdNamespaceName : appStagingNamespaceName
-
-    const dbStackName = stackEnv === 'prod' ? 'db-prod' : 'db-staging'
-    const dbOpts = checkStackExists(dbStackName) ? getDbStackOutputs(dbStackName) : {}
+  if (stack === 'app-staging') {
+    const dbOpts = dbStagingStackRef ? getDbStackOutputs(dbStagingStackRef) : {}
 
     const { AppStack } = await import('./pulumi/stacks/app')
-    const appStackOutput = new AppStack('app-stack', {
+    const appStackOutput = new AppStack('app-staging-stack', {
       projectRootPath,
       project,
-      stackEnv,
+      stackEnv: 'staging',
       customDomain,
-      appNamespaceName,
+      appNamespaceName: appStagingNamespaceName,
+      knativeHttpsIngressGatewayName,
+      ...dbOpts,
+    }, { provider: k8sProvider })
+    return appStackOutput
+  }
+
+  /**
+   * Stack: db-prod
+   */
+  if (stack === 'db-prod') {
+    const { DbStack } = await import('./pulumi/stacks/db')
+    const dbProdStackOutput = new DbStack('db-prod-stack', {
+      dbUser,
+      dbPassword,
+      stackEnv: 'prod',
+      appNamespaceName: appProdNamespaceName,
+      vpc,
+      vpcPublicSubnetIds,
+    }, { provider: k8sProvider })
+    return dbProdStackOutput
+  }
+
+  let dbProdStackRef
+  try {
+    dbProdStackRef = new pulumi.StackReference(`${organization}/${project}/db-prod`)
+  } catch (err) {
+    console.log('dbProdStackRef err', err)
+  }
+
+  /**
+   * Stack: app-staging
+   */
+  if (stack === 'app-prod') {
+    const dbOpts = dbProdStackRef ? getDbStackOutputs(dbProdStackRef) : {}
+
+    const { AppStack } = await import('./pulumi/stacks/app')
+    const appStackOutput = new AppStack('app-prod-stack', {
+      projectRootPath,
+      project,
+      stackEnv: 'prod',
+      customDomain,
+      appNamespaceName: appProdNamespaceName,
       knativeHttpsIngressGatewayName,
       ...dbOpts,
     }, { provider: k8sProvider })

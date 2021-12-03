@@ -31,28 +31,27 @@ simpleStore.setDefaultStates({
   globalPulumiConfigs: [],
 })
 
-// Stack reference store
+// // Stack reference store
+// type StackReferenceStoreObj = {
+//   [key: string]: any
+// }
 
-type StackReferenceStoreObj = {
-  [key: string]: any
-}
+// export class StackReferenceStore {
+//   store: StackReferenceStoreObj
 
-export class StackReferenceStore {
-  store: StackReferenceStoreObj
+//   constructor() {
+//     this.store = {}
+//   }
 
-  constructor() {
-    this.store = {}
-  }
+//   set(stackName: string, stackReferenceInstance: any) {
+//     this.store[stackName] = stackReferenceInstance
+//   }
 
-  setState(stackName: string, stackReferenceInstance: any) {
-    this.store[stackName] = stackReferenceInstance
-  }
+//   get(stackName: string) {
+//     return this.store[stackName]
+//   }
+// }
 
-  getState(stackName: string) {
-    return this.store[stackName]
-  }
-}
+// const stackReferenceStore = new StackReferenceStore()
 
-const stackReferenceStore = new StackReferenceStore()
-
-export { simpleStore, stackReferenceStore }
+export { simpleStore }

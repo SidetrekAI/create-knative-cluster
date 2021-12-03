@@ -88,6 +88,6 @@ export const setPulumiConfigsViaCli = (orgName: string, stackName: string, confi
 }
 
 export const checkStackExists = (stackName: string) => {
-  const stackRef = stackReferenceStore.getState(stackName)
+  const stackRef = stackReferenceStore.get(stackName)
   return stackRef ? true : false
 }
