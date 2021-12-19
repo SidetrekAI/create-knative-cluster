@@ -21,7 +21,7 @@ export const getRoute53AddRecordsPolicy = () => {
   })
 }
 
-export const getCertManagerRoleTrustPolicy = ({
+export const getRoleTrustPolicy = ({
   awsRegion,
   awsAccountId,
   eksHash,
@@ -74,38 +74,4 @@ export const getClusterAutoscalerPolicy = () => {
       }
     ]
   })
-}
-
-export const getClusterAutoscalerRoleTrustPolicy = ({
-  awsRegion,
-  awsAccountId,
-  eksHash,
-  namespace,
-  serviceAccountName,
-}: {
-  awsRegion: string,
-  awsAccountId: string,
-  eksHash: pulumi.Output<string>,
-  namespace: string,
-  serviceAccountName: string,
-}) => {
-  const policyStringified = pulumi.interpolate`{
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Action": "sts:AssumeRoleWithWebIdentity",
-        "Principal": {
-          "Federated": "arn:aws:iam::${awsAccountId}:oidc-provider/oidc.eks.${awsRegion}.amazonaws.com/id/${eksHash}"
-        },
-        "Condition": {
-          "StringEquals": {
-            "oidc.eks.${awsRegion}.amazonaws.com/id/${eksHash}:sub": "system:serviceaccount:${namespace}:${serviceAccountName}"
-          }
-        }
-      }
-    ]
-  }`
-  // policyStringified.apply(t => console.log('policyStringified', t))
-  return policyStringified
 }

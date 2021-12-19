@@ -57,8 +57,11 @@ program
  * 
  *    Run Pulumi automation scripts to setup Kubernetes and deploy all resources (since as of today, Pulumi CLI cannot be run in a Node script)
  * 
- *    Configs: Set Pulumi configs both via Automation API arg and via cli - this ensures that configs are set correctly for ckc cli execution but
- *    also stored locally for local Pulumi management (i.e. Pulumi.<stack>.yaml file will be created)
+ *    Separate out infra and app setups - i.e. 2 different cli cmds
+ *    TODO: Consider making them separate Pulumi projects
+ * 
+ *    Pulumi configs: Set Pulumi configs both via Automation API arg and via cli - this ensures that configs are set correctly for ckc cli 
+ *    execution but also stored locally for local Pulumi management (i.e. Pulumi.<stack>.yaml file will be created)
  */
 async function handleInit(options: CliOptions) {
   console.info(infoColor('\nInitializing project...\n'))
@@ -136,8 +139,11 @@ async function handleInit(options: CliOptions) {
   // Provision EKS cluster with managed node groups
   const clusterOutputs = await pulumiA.stackUp('cluster', { createPulumiProgram: () => mainPulumiProgram })
 
-  // Set up Cluster Autoscaler for autoscaling nodes based on k8s pod requirements
-  await pulumiA.stackUp('cluster-autoscaler', { createPulumiProgram: () => mainPulumiProgram })
+  // // Set up Cluster Autoscaler for autoscaling nodes based on k8s pod requirements
+  // await pulumiA.stackUp('cluster-autoscaler', { createPulumiProgram: () => mainPulumiProgram })
+
+  // Set up Karpenter for autoscaling nodes based on k8s pod requirements
+  await pulumiA.stackUp('karpenter', { createPulumiProgram: () => mainPulumiProgram })
 
   // Set up kubectl
   spinner.start(infoColor(`Exporting kubeconfig for kubectl...`))
@@ -150,31 +156,31 @@ async function handleInit(options: CliOptions) {
   }
   spinner.succeed(successColor(`Successfully exported kubeconfig for kubectl`))
 
-  // Set up Knative
-  const knativeOperatorStackConfigMap = { 'knative_serving_version': { value: '1.0.0' } }
-  await pulumiA.stackUp('knative-operator', { createPulumiProgram: () => mainPulumiProgram, configMap: knativeOperatorStackConfigMap })
-  await pulumiA.stackUp('knative-serving', { createPulumiProgram: () => mainPulumiProgram })
-  await pulumiA.stackUp('knative-eventing', { createPulumiProgram: () => mainPulumiProgram })
+  // // Set up Knative
+  // const knativeOperatorStackConfigMap = { 'knative_serving_version': { value: '1.0.0' } }
+  // await pulumiA.stackUp('knative-operator', { createPulumiProgram: () => mainPulumiProgram, configMap: knativeOperatorStackConfigMap })
+  // await pulumiA.stackUp('knative-serving', { createPulumiProgram: () => mainPulumiProgram })
+  // await pulumiA.stackUp('knative-eventing', { createPulumiProgram: () => mainPulumiProgram })
 
-  // Set up Istio
-  await pulumiA.stackUp('istio', { createPulumiProgram: () => mainPulumiProgram })
+  // // Set up Istio
+  // await pulumiA.stackUp('istio', { createPulumiProgram: () => mainPulumiProgram })
 
-  // Setup cert-manager
-  const certManagerStackConfigMap = {
-    'custom_domain_zone_id': { value: customDomainZoneId },
-    'acme_email': { value: acmeEmail },
-  }
-  await pulumiA.stackUp('cert-manager', { createPulumiProgram: () => mainPulumiProgram, configMap: certManagerStackConfigMap })
+  // // Setup cert-manager
+  // const certManagerStackConfigMap = {
+  //   'custom_domain_zone_id': { value: customDomainZoneId },
+  //   'acme_email': { value: acmeEmail },
+  // }
+  // await pulumiA.stackUp('cert-manager', { createPulumiProgram: () => mainPulumiProgram, configMap: certManagerStackConfigMap })
 
-  // Setup custom gateway for Knative so that custom Virtual Services can be used
-  await pulumiA.stackUp('knative-custom-ingress', { createPulumiProgram: () => mainPulumiProgram })
+  // // Setup custom gateway for Knative so that custom Virtual Services can be used
+  // await pulumiA.stackUp('knative-custom-ingress', { createPulumiProgram: () => mainPulumiProgram })
 
-  // Set up Kube Prometheus Stack (end-to-end k8s monitoring using prometheus, grafana, etc)
-  const kubePrometheusStackConfigMap = {
-    'grafana_user': { value: grafanaUser },
-    'grafana_password': { value: grafanaPassword, secret: true },
-  }
-  await pulumiA.stackUp('kube-prometheus-stack', { createPulumiProgram: () => mainPulumiProgram, configMap: kubePrometheusStackConfigMap })
+  // // Set up Kube Prometheus Stack (end-to-end k8s monitoring using prometheus, grafana, etc)
+  // const kubePrometheusStackConfigMap = {
+  //   'grafana_user': { value: grafanaUser },
+  //   'grafana_password': { value: grafanaPassword, secret: true },
+  // }
+  // await pulumiA.stackUp('kube-prometheus-stack', { createPulumiProgram: () => mainPulumiProgram, configMap: kubePrometheusStackConfigMap })
 
   console.info(gradient.pastel(`\n🎉 Successfully created '${projectName}' project!!!\n`))
   console.timeEnd('Done in')

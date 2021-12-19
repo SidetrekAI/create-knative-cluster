@@ -57,8 +57,8 @@ export class DbStack extends pulumi.ComponentResource {
       username: dbUser,
       password: dbPassword,
       instanceClass: isProd ? 'db.t3.small' : 'db.t3.micro',
-      allocatedStorage: isProd ? 10 : 5,
-      maxAllocatedStorage: isProd ? 100 : 20,
+      allocatedStorage: isProd ? 50 : 5,
+      maxAllocatedStorage: isProd ? 1000 : 20,
     }, {})
 
     this.rdsName = rdsPostgres.name

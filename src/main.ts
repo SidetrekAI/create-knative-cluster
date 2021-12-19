@@ -66,21 +66,42 @@ const main = async () => {
   const kubeconfig = clusterStackRef.getOutput('kubeconfig') as pulumi.Output<any>
   const k8sProvider = new k8s.Provider('k8s-provider', { kubeconfig })
 
+  // /**
+  //  * Stack: cluster-autoscaler
+  //  */
+  // if (stack === 'cluster-autoscaler') {
+  //   const clusterName = clusterStackRef.getOutput('clusterName') as pulumi.Output<string>
+  //   const eksHash = clusterStackRef.getOutput('eksHash') as pulumi.Output<string>
+
+  //   const { ClusterAutoscalerStack } = await import('./pulumi/stacks/cluster-autoscaler')
+  //   const clusterAutoscalerStackOutput = new ClusterAutoscalerStack('cluster-autoscaler-stack', {
+  //     awsAccountId,
+  //     awsRegion,
+  //     clusterName,
+  //     eksHash,
+  //   }, { provider: k8sProvider })
+  //   return clusterAutoscalerStackOutput
+  // }
+
   /**
-   * Stack: cluster-autoscaler
+   * Stack: karpenter
    */
-  if (stack === 'cluster-autoscaler') {
+  if (stack === 'karpenter') {
     const clusterName = clusterStackRef.getOutput('clusterName') as pulumi.Output<string>
+    const clusterEndpoint = clusterStackRef.getOutput('clusterEndpoint') as pulumi.Output<any>
+    const nodeGroupRole = clusterStackRef.getOutput('nodeGroupRole') as unknown as aws.iam.Role
     const eksHash = clusterStackRef.getOutput('eksHash') as pulumi.Output<string>
 
-    const { ClusterAutoscalerStack } = await import('./pulumi/stacks/cluster-autoscaler')
-    const clusterAutoscalerStackOutput = new ClusterAutoscalerStack('cluster-autoscaler-stack', {
+    const { KarpenterStack } = await import('./pulumi/stacks/karpenter')
+    const karpenterStackOutput = new KarpenterStack('cluster-autoscaler-stack', {
       awsAccountId,
       awsRegion,
       clusterName,
+      clusterEndpoint,
+      nodeGroupRole,
       eksHash,
     }, { provider: k8sProvider })
-    return clusterAutoscalerStackOutput
+    return karpenterStackOutput
   }
 
   /**

@@ -13,15 +13,18 @@ export class ClusterStack extends pulumi.ComponentResource {
   vpcPublicSubnetIds: Promise<pulumi.Output<string>[]>
   kubeconfig: pulumi.Output<any>
   clusterName: string
+  clusterEndpoint: pulumi.Output<any>
   clusterOidcProviderId: pulumi.Output<string>
   clusterOidcProviderUrl: pulumi.Output<string>
   clusterOidcProviderArn: pulumi.Output<string>
   eksHash: pulumi.Output<string>
+  nodeGroupRole: aws.iam.Role
 
   constructor(name: string, args: ClusterStackArgs, opts?: pulumi.ComponentResourceOptions) {
     super('custom:stack:ClusterStack', name, {}, opts)
 
     const { project } = args
+    const clusterName = `${project}-cluster`
 
     // IAM role for eks managed node group
     const instanceAssumeRolePolicy = aws.iam.getPolicyDocument({
@@ -33,13 +36,14 @@ export class ClusterStack extends pulumi.ComponentResource {
         }],
       }],
     })
-    const nodeGroupRole = new aws.iam.Role('ng-role', {
+    const nodeGroupRole = new aws.iam.Role(`NgRole-${clusterName}`, {
       assumeRolePolicy: instanceAssumeRolePolicy.then(rolePolicy => rolePolicy.json),
     })
     const policyArns = [
       'arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy',
       'arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy',
       'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly',
+      'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore', // required for Karpenter
     ]
     policyArns.forEach((policyArn, i) => {
       new aws.iam.RolePolicyAttachment(`ng-role-policy-${i}`, { policyArn, role: nodeGroupRole })
@@ -48,12 +52,17 @@ export class ClusterStack extends pulumi.ComponentResource {
     /**
      * VPC
      */
-    const vpc = new awsx.ec2.Vpc('vpc', {})
+    const vpc = new awsx.ec2.Vpc('vpc', {
+      numberOfAvailabilityZones: 3,
+      subnets: [
+        { type: "public" },
+        { type: "private", tags: { [`kubernetes.io/cluster/${clusterName}`]: 'owned' } }, // tags required for Karpenter setup
+      ]
+    })
 
     /**
      * EKS cluster
      */
-    const clusterName = `${project}-cluster`
     const cluster = new eks.Cluster(clusterName, {
       name: clusterName,
       skipDefaultNodeGroup: true,
@@ -61,11 +70,12 @@ export class ClusterStack extends pulumi.ComponentResource {
       publicSubnetIds: vpc.publicSubnetIds,
       privateSubnetIds: vpc.privateSubnetIds,
       // gpu: true,
-      createOidcProvider: true, // creates OIDC Provider to enable IAM Roles for Service Accounts (IRSA) in EKS - required for cert-manager setup
+      createOidcProvider: true, // creates OIDC Provider to enable IAM Roles for Service Accounts (IRSA) in EKS
       instanceRoles: [nodeGroupRole],
     }, {})
     const kubeconfig = cluster.kubeconfig
     const clusterOidcProvider = cluster.core.oidcProvider as any
+    const clusterEndpoint = cluster.core.endpoint
 
     /**
      * EKS managed node group
@@ -102,10 +112,12 @@ export class ClusterStack extends pulumi.ComponentResource {
     this.vpcPublicSubnetIds = vpc.publicSubnetIds
     this.kubeconfig = kubeconfig
     this.clusterName = clusterName
+    this.clusterEndpoint = clusterEndpoint
     this.clusterOidcProviderId = clusterOidcProvider.id
     this.clusterOidcProviderUrl = clusterOidcProvider.url
     this.clusterOidcProviderArn = clusterOidcProvider.arn
     this.eksHash = clusterOidcProvider.id.apply((oidcProviderId: string) => oidcProviderId.split('/').slice(-1)[0])
+    this.nodeGroupRole = nodeGroupRole
 
     this.registerOutputs()
   }

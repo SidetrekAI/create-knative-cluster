@@ -15,7 +15,7 @@ export interface AppStackArgs {
   dbPassword?: pulumi.Output<string>,
   dbName?: pulumi.Output<string>,
   dbEndpoint?: pulumi.Output<string>,
-  dbPort?: pulumi.Output<string>,
+  dbPort?: pulumi.Output<number>,
   knativeHttpsIngressGatewayName: string,
 }
 

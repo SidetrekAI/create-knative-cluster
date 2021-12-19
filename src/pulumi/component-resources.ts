@@ -7,8 +7,7 @@ import * as certmanager from '@pulumi/kubernetes-cert-manager'
 import {
   getClusterAutoscalerPolicy,
   getRoute53AddRecordsPolicy,
-  getCertManagerRoleTrustPolicy,
-  getClusterAutoscalerRoleTrustPolicy,
+  getRoleTrustPolicy,
 } from './iam-policies'
 
 /**
@@ -43,7 +42,7 @@ export class ClusterAutoscaler extends pulumi.ComponentResource {
     const clusterAutoscalerRoleName = 'AmazonEKSClusterAutoscalerRole'
     const clusterAutoscalerRole = new aws.iam.Role(clusterAutoscalerRoleName, {
       namePrefix: clusterAutoscalerRoleName,
-      assumeRolePolicy: getClusterAutoscalerRoleTrustPolicy({
+      assumeRolePolicy: getRoleTrustPolicy({
         awsRegion,
         awsAccountId,
         eksHash,
@@ -90,6 +89,158 @@ export class ClusterAutoscaler extends pulumi.ComponentResource {
     this.registerOutputs()
   }
 }
+
+interface KarpenterArgs {
+  awsAccountId: string,
+  awsRegion: string,
+  clusterName: pulumi.Output<string>,
+  clusterEndpoint: pulumi.Output<any>,
+  nodeGroupRole: aws.iam.Role,
+  eksHash: pulumi.Output<string>,
+}
+
+export class Karpenter extends pulumi.ComponentResource {
+  constructor(name: string, args: KarpenterArgs, opts: any) {
+    super('custom:k8s:Karpenter', name, {}, opts)
+
+    const {
+      awsAccountId,
+      awsRegion,
+      clusterName,
+      clusterEndpoint,
+      nodeGroupRole,
+      eksHash,
+    } = args
+
+    const karpenterNamespaceName = 'karpenter'
+    const karpenterReleaseName = 'karpenter-release'
+    const karpenterServiceAccountName = 'karpenter-sa'
+
+    // Tag Subnets
+    //    > Done in cluster setup
+
+    // Create the KarpenterNode IAM Role
+    //    > Reuse the managed node group role from cluster setup
+
+    // const instanceAssumeRolePolicy = aws.iam.getPolicyDocument({
+    //   statements: [{
+    //     actions: ['sts:AssumeRole'],
+    //     principals: [{
+    //       type: 'Service',
+    //       identifiers: ['ec2.amazonaws.com'],
+    //     }],
+    //   }],
+    // })
+    // const karpenterNodeRoleName = `KarpenterNodeRole-${clusterName}`
+    // const karpenterNodeRole = new aws.iam.Role(karpenterNodeRoleName, {
+    //   name: karpenterNodeRoleName,
+    //   assumeRolePolicy: instanceAssumeRolePolicy.then(rolePolicy => rolePolicy.json),
+    // })
+    // const policyArns = [
+    //   'arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy',
+    //   'arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy',
+    //   'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly',
+    //   'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore',
+    // ]
+    // policyArns.forEach((policyArn, i) => {
+    //   new aws.iam.RolePolicyAttachment(`KarpenterNodeRole-policy-${i}`, { policyArn, role: karpenterNodeRole })
+    // })
+
+    // Create an InstanceProfile Karpenter can use to assign a role to EC2 instances it manages
+    const karpenterNodeInstanceProfileName = `KarpenterNodeInstanceProfile-${clusterName}`
+    const karpenterNodeInstanceProfile = new aws.iam.InstanceProfile(karpenterNodeInstanceProfileName, {
+      name: karpenterNodeInstanceProfileName,
+      role: nodeGroupRole.name,
+    });
+
+    // Create the KarpenterController IAM Role
+    const karpenterControllerRoleName = `KarpenterControllerRole-${clusterName}`
+    const karpenterControllerRole = new aws.iam.Role(karpenterControllerRoleName, {
+      name: karpenterControllerRoleName,
+      path: '/',
+      description: 'Karpenter controller role',
+      assumeRolePolicy: getRoleTrustPolicy({
+        awsRegion,
+        awsAccountId,
+        eksHash,
+        namespace: karpenterNamespaceName,
+        serviceAccountName: karpenterServiceAccountName,
+      }),
+    })
+
+    const karpenterControllerPolicyName = `KarpenterControllerPolicy-${clusterName}`
+    const karpenterControllerPolicy = new aws.iam.Policy(karpenterControllerPolicyName, {
+      name: karpenterControllerPolicyName,
+      path: '/',
+      description: 'Karpenter Controller Policy',
+      policy: JSON.stringify({
+        Version: '2012-10-17',
+        Statement: [{
+          Effect: 'Allow',
+          Resource: '*',
+          Action: [
+            'ec2:CreateLaunchTemplate',
+            'ec2:CreateFleet',
+            'ec2:RunInstances',
+            'ec2:CreateTags',
+            'iam:PassRole',
+            'ec2:TerminateInstances',
+            'ec2:DescribeLaunchTemplates',
+            'ec2:DescribeInstances',
+            'ec2:DescribeSecurityGroups',
+            'ec2:DescribeSubnets',
+            'ec2:DescribeInstanceTypes',
+            'ec2:DescribeInstanceTypeOfferings',
+            'ec2:DescribeAvailabilityZones',
+            'ssm:GetParameter',
+          ],
+        }],
+      }),
+    })
+    new aws.iam.RolePolicyAttachment(`${karpenterControllerPolicyName}-attachment`, {
+      role: karpenterControllerRole.name,
+      policyArn: karpenterControllerPolicy.arn,
+    })
+
+    // // Create a ServiceAccount
+    // const karpenterSa = new k8s.core.v1.ServiceAccount(karpenterServiceAccountName, {
+    //   metadata: {
+    //     annotations: {
+    //       'eks.amazonaws.com/role-arn': pulumi.interpolate`${karpenterControllerRole.arn}`
+    //     }
+    //   }
+    // })
+
+    // // Create the EC2 Spot Service Linked Role
+
+    // Set up Karpenter via Helm
+    const karpenter = new k8s.helm.v3.Release(karpenterReleaseName, {
+      name: karpenterReleaseName,
+      namespace: karpenterNamespaceName,
+      chart: 'karpenter',
+      version: '0.5.3',
+      repositoryOpts: {
+        repo: 'https://charts.karpenter.sh',
+      },
+      values: {
+        serviceAccount: {
+          annotations: {
+            'eks.amazonaws.com/role-arn': pulumi.interpolate`${karpenterControllerRole.arn}`
+          }
+        },
+        controller: {
+          clusterName,
+          clusterEndpoint,
+        },
+      },
+      cleanupOnFail: true,
+    }, { parent: this })
+
+    this.registerOutputs()
+  }
+}
+
+
 
 interface RdsPostgresArgs {
   subnetIds: pulumi.Output<any>,
@@ -216,8 +367,8 @@ export class KnativeServing extends pulumi.ComponentResource {
       spec: {
         additionalManifests: [
           // this will make sure config-certmanager will be managed by Knative Serving CR
-          { URL: 'https://github.com/knative/net-certmanager/releases/download/v0.26.0/release.yaml' }, 
-          { URL: 'https://github.com/knative/serving/releases/download/v0.26.0/serving-nscert.yaml' }, 
+          { URL: 'https://github.com/knative/net-certmanager/releases/download/v0.26.0/release.yaml' },
+          { URL: 'https://github.com/knative/serving/releases/download/v0.26.0/serving-nscert.yaml' },
         ],
         config: { // you can edit all ConfigMaps in knative operator namespace here
           domain: { // set up a custom domain
@@ -545,7 +696,7 @@ export class CertManager extends pulumi.ComponentResource {
       namePrefix: certManagerRoleName,
       path: '/',
       description: 'cert-manager role',
-      assumeRolePolicy: getCertManagerRoleTrustPolicy({
+      assumeRolePolicy: getRoleTrustPolicy({
         awsRegion,
         awsAccountId,
         eksHash,
@@ -578,7 +729,7 @@ export class CertManager extends pulumi.ComponentResource {
       helmOptions: {
         version: '1.5.4',
         name: certManagerName,
-        namespace: certManagerNamespaceName,
+        namespace: certManagerNamespace.metadata.name,
       },
       serviceAccount: {
         annotations: {

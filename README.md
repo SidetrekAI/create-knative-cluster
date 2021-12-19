@@ -46,8 +46,8 @@ Please check out the Knative docs [here](https://knative.dev/docs/) for more det
 * Knative Eventing: Currently not really used for anything and not connected to any eventing sources (i.e. Kafka, Ceph, etc.)
 * Monitoring via Kube Prometheus Stack: Monitoring with Prometheus and Grafana is enabled by default. Login to Grafana using the credentials you set with CLI by visiting grafana-dashboard.your-domain.com
 * (Optional) AWS RDS instance
-  * Staging DB: Defaults to `db.t3.micro` with 5GB of storage and 20GB of max storage
-  * Prod DB: Defaults to `db.t3.small` with 10GB of storage and 100GB of max storage
+  * Staging DB: Defaults to `db.t3.micro` with 5GB of storage and 50GB of max storage
+  * Prod DB: Defaults to `db.t3.small` with 20GB of storage and 1000GB of max storage
 * (Optional) App
   * Staging app: Knative Service that routes to `staging.<your-domain>` (i.e. `staging.sidetrek.com`) using Istio VirtualService
   * Pro app: Knative Service that routes to `*.<your-domain>` (i.e. `*.sidetrek.com`) using Istio VirtualService
