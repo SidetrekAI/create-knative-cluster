@@ -1,6 +1,6 @@
 {
   "name": "@sidetrek/create-knative-cluster",
-  "version": "0.0.48",
+  "version": "0.0.49",
   "type": "commonjs",
   "publishConfig": {
     "access": "public"
