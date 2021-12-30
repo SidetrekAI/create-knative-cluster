@@ -6,13 +6,44 @@ import * as chalk from 'chalk'
 import { ConfigMap } from '@pulumi/pulumi/automation'
 import * as yaml from 'js-yaml'
 
-const cwd = process.cwd() // dir where the cli is run (i.e. project root)
+require('dotenv').config()
+
+const cwd = process.cwd() // dir where the cli is run
+
+/**
+ * Options:
+ *    format: one of 'string' or 'object'
+ *    exclude: env variable keys to exclude
+ */
+export const getRootEnvs = ({ format = 'object', exclude = [] } = {}) => {
+  const envExclusions = ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', ...exclude]
+  const envsObj = process.env
+  const envKeys = Object.keys(envsObj)
+  const envsArr = envKeys
+    .reduce((prev, curr) => [...prev, { name: curr, value: envsObj[curr] }], [] as any[])
+    .filter(({ name }) => !envExclusions.includes(name))
+
+  if (format === 'object') {
+    // i.e. { name: 'NODE_ENV', value: 'production' }
+    return envsArr
+  } else if (format === 'string') {
+    // i.e. NODE_ENV=production
+    return envsArr.map(({ name, value }) => `${name}=${value}`)
+  } else {
+    return []
+  }
+}
 
 export const kebabCaseToCamelCase = (kebabStr: string) => {
   return kebabStr.split('-').map((w, i) => {
     if (i == 0) { return w.toLowerCase() }
     return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
   }).join('')
+}
+
+export const objToContainerEnvs = (obj: { [key: string]: string }) => {
+  const keys = Object.keys(obj)
+  return keys.reduce((prev: any, curr: any) => ([...prev, { name: curr, value: obj[curr] }]), [])
 }
 
 export const getProjectName = () => {

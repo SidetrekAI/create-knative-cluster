@@ -1,7 +1,7 @@
 import * as pulumi from '@pulumi/pulumi'
 import * as awsx from '@pulumi/awsx'
 import * as k8s from '@pulumi/kubernetes'
-import { RdsPostgres } from '../component-resources'
+import { RdsPostgres } from '../component-resources/app'
 
 export interface DbStackArgs {
   dbUser: string,

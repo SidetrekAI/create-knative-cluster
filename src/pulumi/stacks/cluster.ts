@@ -2,9 +2,13 @@ import * as pulumi from '@pulumi/pulumi'
 import * as awsx from '@pulumi/awsx'
 import * as eks from '@pulumi/eks'
 import * as aws from '@pulumi/aws'
+import * as k8s from '@pulumi/kubernetes'
 
 export interface ClusterStackArgs {
   project: string,
+  clusterAdminRole: aws.iam.Role,
+  developerRole: aws.iam.Role,
+  encryptionConfigKeyArn?: string, // AWS KMS Key ARN to use with the encryption configuration for the cluster (https://aws.amazon.com/about-aws/whats-new/2020/03/amazon-eks-adds-envelope-encryption-for-secrets-with-aws-kms/)
 }
 
 export class ClusterStack extends pulumi.ComponentResource {
@@ -13,17 +17,23 @@ export class ClusterStack extends pulumi.ComponentResource {
   vpcPublicSubnetIds: Promise<pulumi.Output<string>[]>
   kubeconfig: pulumi.Output<any>
   clusterName: string
-  clusterEndpoint: pulumi.Output<any>
+  clusterEndpoint: pulumi.Output<string>
   clusterOidcProviderId: pulumi.Output<string>
   clusterOidcProviderUrl: pulumi.Output<string>
   clusterOidcProviderArn: pulumi.Output<string>
   eksHash: pulumi.Output<string>
   nodeGroupRole: aws.iam.Role
+  developerClusterRole: k8s.rbac.v1.ClusterRole
 
   constructor(name: string, args: ClusterStackArgs, opts?: pulumi.ComponentResourceOptions) {
     super('custom:stack:ClusterStack', name, {}, opts)
 
-    const { project } = args
+    const {
+      project,
+      clusterAdminRole,
+      developerRole,
+      encryptionConfigKeyArn,
+    } = args
     const clusterName = `${project}-cluster`
 
     // IAM role for eks managed node group
@@ -52,8 +62,8 @@ export class ClusterStack extends pulumi.ComponentResource {
     /**
      * VPC
      */
-    const vpc = new awsx.ec2.Vpc('vpc', {
-      numberOfAvailabilityZones: 3,
+    const vpc = new awsx.ec2.Vpc(`vpc-${clusterName}`, {
+      numberOfAvailabilityZones: 2,
       subnets: [
         { type: "public" },
         { type: "private", tags: { [`kubernetes.io/cluster/${clusterName}`]: 'owned' } }, // tags required for Karpenter setup
@@ -72,6 +82,20 @@ export class ClusterStack extends pulumi.ComponentResource {
       // gpu: true,
       createOidcProvider: true, // creates OIDC Provider to enable IAM Roles for Service Accounts (IRSA) in EKS
       instanceRoles: [nodeGroupRole],
+      ...encryptionConfigKeyArn ? { encryptionConfigKeyArn } : {},
+      roleMappings: [
+        // Provides full administrator cluster access to the k8s cluster
+        {
+          groups: ['system:masters'],
+          roleArn: clusterAdminRole.arn,
+          username: 'admin-user',
+        },
+        {
+          groups: ['prod-group'],
+          roleArn: developerRole.arn,
+          username: 'developer-user',
+        },
+      ],
     }, {})
     const kubeconfig = cluster.kubeconfig
     const clusterOidcProvider = cluster.core.oidcProvider as any
@@ -84,13 +108,13 @@ export class ClusterStack extends pulumi.ComponentResource {
     const defaultNodeGroup = new eks.ManagedNodeGroup(defaultNodeGroupName, {
       cluster: {
         ...cluster.core,
-        nodeGroupOptions: {
-          autoScalingGroupTags: {
-            // Required for Cluster Autoscaler to work with eks
-            [`k8s.io/cluster-autoscaler/${clusterName}`]: 'owned',
-            'k8s.io/cluster-autoscaler/enabled': 'TRUE',
-          },
-        }
+        // nodeGroupOptions: {
+        //   autoScalingGroupTags: {
+        //     // Required for Cluster Autoscaler to work with eks
+        //     [`k8s.io/cluster-autoscaler/${clusterName}`]: 'owned',
+        //     'k8s.io/cluster-autoscaler/enabled': 'TRUE',
+        //   },
+        // }
       },
       capacityType: 'ON_DEMAND',
       instanceTypes: ['t3.medium'],
@@ -107,6 +131,49 @@ export class ClusterStack extends pulumi.ComponentResource {
       ignoreChanges: ['scalingConfig.desiredSize'], // required for Cluster Autoscaler setup
     })
 
+    /**
+     * Create Kubernetes RBAC objects to allow access for mapped IAM roles
+     */
+    const clusterAdminK8sClusterRoleName = 'ClusterAdminRole'
+    const clusterAdminK8sClusterRole = new k8s.rbac.v1.ClusterRole(clusterAdminK8sClusterRoleName, {
+      metadata: {
+        name: clusterAdminK8sClusterRoleName,
+      },
+      rules: [{
+        apiGroups: ['*'],
+        resources: ['*'],
+        verbs: ['*'],
+      }]
+    }, { provider: cluster.provider })
+
+    const clusterAdminK8sClusterRoleBindingName = 'cluster-admin-binding'
+    new k8s.rbac.v1.ClusterRoleBinding(clusterAdminK8sClusterRoleBindingName, {
+      metadata: {
+        name: clusterAdminK8sClusterRoleBindingName,
+      },
+      subjects: [{
+        kind: 'User',
+        name: 'admin-user',
+      }],
+      roleRef: {
+        kind: 'ClusterRole',
+        name: clusterAdminK8sClusterRole.metadata.name,
+        apiGroup: 'rbac.authorization.k8s.io',
+      },
+    }, { provider: cluster.provider })
+
+    const developerK8sClusterRoleName = 'DeveloperRole'
+    const developerK8sClusterRole = new k8s.rbac.v1.ClusterRole(developerK8sClusterRoleName, {
+      metadata: {
+        name: developerK8sClusterRoleName,
+      },
+      rules: [{
+        apiGroups: ['*'],
+        resources: ['*'],
+        verbs: ['*'],
+      }]
+    }, { provider: cluster.provider })
+
     this.vpc = vpc
     this.vpcId = vpc.id
     this.vpcPublicSubnetIds = vpc.publicSubnetIds
@@ -118,6 +185,7 @@ export class ClusterStack extends pulumi.ComponentResource {
     this.clusterOidcProviderArn = clusterOidcProvider.arn
     this.eksHash = clusterOidcProvider.id.apply((oidcProviderId: string) => oidcProviderId.split('/').slice(-1)[0])
     this.nodeGroupRole = nodeGroupRole
+    this.developerClusterRole = developerK8sClusterRole
 
     this.registerOutputs()
   }

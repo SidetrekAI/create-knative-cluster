@@ -1,12 +1,12 @@
 import * as pulumi from '@pulumi/pulumi'
 import * as aws from '@pulumi/aws'
-import { Karpenter } from '../component-resources'
+import { Karpenter } from '../component-resources/cluster-svc'
 
 export interface KarpenterStackArgs {
   awsAccountId: string,
   awsRegion: string,
-  clusterName: pulumi.Output<string>,
-  clusterEndpoint: pulumi.Output<any>,
+  clusterName: string,
+  clusterEndpoint: string,
   nodeGroupRole: aws.iam.Role,
   eksHash: pulumi.Output<string>,
 }

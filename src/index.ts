@@ -13,7 +13,7 @@ import {
   setPulumiConfigsViaCli,
   getProjectName,
 } from './pulumi/helpers'
-import { PulumiAutomation } from './pulumi/automation/automation'
+import { PulumiAutomation } from './pulumi-automation'
 import { simpleStore } from './pulumi/store'
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') })
@@ -39,14 +39,15 @@ program
 
 program
   .command('init')
-  .requiredOption('--aws-region <aws region>', 'aws region; i.e. us-west-1')
-  .requiredOption('--pulumi-organization <Pulumi account/organization>', 'name of your Pulumi account (if free plan) or organization (if paid plan)')
-  .requiredOption('--custom-domain <custom domain>', 'your custom domain; i.e. your-domain.com')
-  .requiredOption('--custom-domain-zone-id <custom domain zone ID>', 'AWS Route53 Hosted Zone ID for your custom domain; i.e. Z02401234DADFCMEXX64X')
-  .requiredOption('--acme-email <ACME email>', 'https certificate issuer (Let\'s Encrypt) will use this to contact you about expiring certificates, and issues related to your account')
-  .option('--use-direnv', 'to enable directory specific kubectl setup; defaults to false', false)
-  .option('--grafana-user <grafana user name>', 'to enable directory specific kubectl setup; defaults to ckcadmin', 'ckcadmin')
-  .option('--grafana-password <grafana password>', 'to enable directory specific kubectl setup; defaults to ckcadminpass', 'ckcadminpass')
+  // .requiredOption('--aws-region <aws region>', 'aws region; i.e. us-west-1')
+  // .requiredOption('--pulumi-organization <Pulumi account/organization>', 'name of your Pulumi account (if free plan) or organization (if paid plan)')
+  // .requiredOption('--custom-domain <custom domain>', 'your custom domain; i.e. your-domain.com')
+  // .requiredOption('--custom-domain-zone-id <custom domain zone ID>', 'AWS Route53 Hosted Zone ID for your custom domain; i.e. Z02401234DADFCMEXX64X')
+  // .requiredOption('--acme-email <ACME email>', 'https certificate issuer (Let\'s Encrypt) will use this to contact you about expiring certificates, and issues related to your account')
+  // .option('--encryption-config-key-arn', 'AWS KMS Key ARN to use with the encryption configuration for the cluster')
+  // .option('--use-direnv', 'to enable directory specific kubectl setup; defaults to false', false)
+  // .option('--grafana-user <grafana user name>', 'to enable directory specific kubectl setup; defaults to ckcadmin', 'ckcadmin')
+  // .option('--grafana-password <grafana password>', 'to enable directory specific kubectl setup; defaults to ckcadminpass', 'ckcadminpass')
   .option('--debug', 'show logs', false)
   .description('create a Knative cluster in AWS EKS using Pulumi')
   .showHelpAfterError('(add --help for additional information)')
@@ -63,25 +64,32 @@ program
  *    Pulumi configs: Set Pulumi configs both via Automation API arg and via cli - this ensures that configs are set correctly for ckc cli 
  *    execution but also stored locally for local Pulumi management (i.e. Pulumi.<stack>.yaml file will be created)
  */
-async function handleInit(options: CliOptions) {
+async function handleInit(cliOptions: CliOptions) {
   console.info(infoColor('\nInitializing project...\n'))
   console.time('Done in')
-  // console.log('cli options', options)
 
-  // Make options available in other modules
-  simpleStore.setState('cliOptions', options)
+  let { init: configOptions } = await import(`${cwd}/ckc-config.json`)
+
+  if (!configOptions) {
+    throw new Error('Must provide "ckc-config.json" in your project root folder')
+  }
 
   const {
     awsRegion,
     pulumiOrganization,
-    customDomain,
-    customDomainZoneId,
+    hostname,
+    hostedZoneId,
     acmeEmail,
-    useDirenv,
-    grafanaUser,
-    grafanaPassword,
-    debug,
-  } = options
+    useDirenv = false,
+    encryptionConfigKeyArn,
+    grafanaUser = 'ckcadmin',
+    grafanaPassword = 'ckcadminpass',
+  } = configOptions
+
+  const { debug } = cliOptions
+
+  // Make options available in other modules
+  simpleStore.setState('cliOptions', cliOptions)
 
   console.info(`debug=${debug}\n`)
 
@@ -105,7 +113,7 @@ async function handleInit(options: CliOptions) {
   simpleStore.setState('globalPulumiConfigMap', {
     'aws:region': { value: awsRegion },
     'pulumi_organization': { value: pulumiOrganization },
-    'custom_domain': { value: customDomain },
+    'hostname': { value: hostname },
   })
 
   // First set the cli execution context so that mainPulumiProgram will get the stack name from pulumiStackUp func
@@ -136,11 +144,14 @@ async function handleInit(options: CliOptions) {
    *    NOTE: order matters
    */
 
-  // Provision EKS cluster with managed node groups
-  const clusterOutputs = await pulumiA.stackUp('cluster', { createPulumiProgram: () => mainPulumiProgram })
+  // Set up some IAM roles to use to access the cluster later
+  const identityOutputs = await pulumiA.stackUp('identity', { createPulumiProgram: () => mainPulumiProgram })
 
-  // // Set up Cluster Autoscaler for autoscaling nodes based on k8s pod requirements
-  // await pulumiA.stackUp('cluster-autoscaler', { createPulumiProgram: () => mainPulumiProgram })
+  // Provision EKS cluster with managed node groups
+  const clusterStackConfigMap = {
+    ...encryptionConfigKeyArn ? { 'encryptionConfigKeyArn': { value: encryptionConfigKeyArn } } : {},
+  }
+  const clusterOutputs = await pulumiA.stackUp('cluster', { createPulumiProgram: () => mainPulumiProgram, configMap: clusterStackConfigMap })
 
   // Set up Karpenter for autoscaling nodes based on k8s pod requirements
   await pulumiA.stackUp('karpenter', { createPulumiProgram: () => mainPulumiProgram })
@@ -156,33 +167,28 @@ async function handleInit(options: CliOptions) {
   }
   spinner.succeed(successColor(`Successfully exported kubeconfig for kubectl`))
 
-  // // Set up Knative
-  // const knativeOperatorStackConfigMap = { 'knative_serving_version': { value: '1.0.0' } }
-  // await pulumiA.stackUp('knative-operator', { createPulumiProgram: () => mainPulumiProgram, configMap: knativeOperatorStackConfigMap })
-  // await pulumiA.stackUp('knative-serving', { createPulumiProgram: () => mainPulumiProgram })
-  // await pulumiA.stackUp('knative-eventing', { createPulumiProgram: () => mainPulumiProgram })
+  // Setup cert-manager
+  const certManagerStackConfigMap = {
+    'hosted_zone_id': { value: hostedZoneId },
+    'acme_email': { value: acmeEmail },
+  }
+  await pulumiA.stackUp('cert-manager', { createPulumiProgram: () => mainPulumiProgram, configMap: certManagerStackConfigMap })
 
-  // // Set up Istio
-  // await pulumiA.stackUp('istio', { createPulumiProgram: () => mainPulumiProgram })
+  // Set up Emissary
+  await pulumiA.stackUp('emissary', { createPulumiProgram: () => mainPulumiProgram })
 
-  // // Setup cert-manager
-  // const certManagerStackConfigMap = {
-  //   'custom_domain_zone_id': { value: customDomainZoneId },
-  //   'acme_email': { value: acmeEmail },
-  // }
-  // await pulumiA.stackUp('cert-manager', { createPulumiProgram: () => mainPulumiProgram, configMap: certManagerStackConfigMap })
+  // Set up Dapr
+  await pulumiA.stackUp('dapr', { createPulumiProgram: () => mainPulumiProgram })
 
-  // // Setup custom gateway for Knative so that custom Virtual Services can be used
-  // await pulumiA.stackUp('knative-custom-ingress', { createPulumiProgram: () => mainPulumiProgram })
+  // Set up Kube Prometheus Stack (end-to-end k8s monitoring using prometheus, grafana, etc)
+  const kubePrometheusStackConfigMap = {
+    'grafana_user': { value: grafanaUser },
+    'grafana_password': { value: grafanaPassword, secret: true },
+  }
+  await pulumiA.stackUp('kube-prometheus-stack', { createPulumiProgram: () => mainPulumiProgram, configMap: kubePrometheusStackConfigMap })
+  await pulumiA.stackUp('grafana-dashboard', { createPulumiProgram: () => mainPulumiProgram })
 
-  // // Set up Kube Prometheus Stack (end-to-end k8s monitoring using prometheus, grafana, etc)
-  // const kubePrometheusStackConfigMap = {
-  //   'grafana_user': { value: grafanaUser },
-  //   'grafana_password': { value: grafanaPassword, secret: true },
-  // }
-  // await pulumiA.stackUp('kube-prometheus-stack', { createPulumiProgram: () => mainPulumiProgram, configMap: kubePrometheusStackConfigMap })
-
-  console.info(gradient.pastel(`\n🎉 Successfully created '${projectName}' project!!!\n`))
+  console.info(gradient.pastel(`\n🎉 Successfully created '${projectName}' project\n`))
   console.timeEnd('Done in')
   process.exit(0)
 }
@@ -190,42 +196,35 @@ async function handleInit(options: CliOptions) {
 
 program
   .command('app')
-  .requiredOption('--aws-region <aws region>', 'aws region; i.e. us-west-1')
-  .requiredOption('--pulumi-organization <Pulumi account/organization>', 'name of your Pulumi account (if free plan) or organization (if paid plan)')
-  .requiredOption('--custom-domain <custom domain>', 'your custom domain; i.e. your-domain.com')
-  // .option('--build', 'whether to build/push app to ECR; defaults to false', false)
-  // .option('--image-url <image url>', 'Docker image url - if --build option is not set, this must be passed in') // TODO: defaults to hello world create react + express app
-  // .option('--frontend-env-path', 'path to .env file for frontend env variables (i.e. REACT_APP_* env variables)') // TODO: hardcoded for now
-  .option('--create-db', 'create an RDS instance', false)
-  .option('--staging-db-user <staging DB user>', 'AWS RDS postgres db user name; defaults to ckcadmin', 'ckcadmin')
-  .option('--staging-db-password <staging DB user>', 'AWS RDS postgres db password; defaults to ckcadminpass', 'ckcadminpass')
-  .option('--prod-db-user <prod DB user>', 'AWS RDS postgres db user name; defaults to ckcadmin', 'ckcadmin')
-  .option('--prod-db-password <prod DB user>', 'AWS RDS postgres db password; defaults to ckcadminpass', 'ckcadminpass')
   .option('--debug', 'show logs', false)
-  .description('create app using Knative')
+  .description('create app')
   .showHelpAfterError('(add --help for additional information)')
   .action(handleApp)
 
-async function handleApp(options: CliOptions) {
+async function handleApp(cliOptions: CliOptions) {
   console.info(infoColor('\nCreating app...\n'))
   console.time('Done in')
-  
-  // Make options available in other modules
-  simpleStore.setState('cliOptions', options)
-  
+
+  let { init: configOptions } = await import(`${cwd}/ckc-config.json`)
+
+  if (!configOptions) {
+    throw new Error('Must provide "ckc-config.json" in your project root folder')
+  }
+
   const {
     awsRegion,
     pulumiOrganization,
-    customDomain,
-    imageUrl,
-    build,
-    createDb,
-    stagingDbUser,
-    stagingDbPassword,
-    prodDbUser,
-    prodDbPassword,
-    debug,
-  } = options
+    hostname,
+    stagingDbUser = 'ckcadmin',
+    stagingDbPassword = 'ckcadminpass',
+    prodDbUser = 'ckcadmin',
+    prodDbPassword = 'ckcadminpass',
+  } = configOptions
+
+  const { debug } = cliOptions
+
+  // Make options available in other modules
+  simpleStore.setState('cliOptions', cliOptions)
 
   console.info(`debug=${debug}\n`)
 
@@ -238,7 +237,7 @@ async function handleApp(options: CliOptions) {
   simpleStore.setState('globalPulumiConfigMap', {
     'aws:region': { value: awsRegion },
     'pulumi_organization': { value: pulumiOrganization },
-    'custom_domain': { value: customDomain },
+    'hostname': { value: hostname },
   })
 
   // First set the cli execution context so that mainPulumiProgram will get the stack name from pulumiStackUp func
@@ -268,43 +267,17 @@ async function handleApp(options: CliOptions) {
    * 
    *    NOTE: order matters
    */
+  // Set up staging app
+  await pulumiA.stackUp('app-staging-init', { createPulumiProgram: () => mainPulumiProgram })
+  await pulumiA.stackUp('app-staging', { createPulumiProgram: () => mainPulumiProgram })
+  await pulumiA.stackUp('app-staging-ingress', { createPulumiProgram: () => mainPulumiProgram })
 
-  // Create namespaces for staging/prod apps
-  await pulumiA.stackUp('app-ns', { createPulumiProgram: () => mainPulumiProgram })
+  // // Set up prod app
+  // await pulumiA.stackUp('app-prod-init', { createPulumiProgram: () => mainPulumiProgram })
+  // await pulumiA.stackUp('app-prod', { createPulumiProgram: () => mainPulumiProgram })
+  // await pulumiA.stackUp('app-prod-ingress', { createPulumiProgram: () => mainPulumiProgram })
 
-  if (createDb) {
-    // Set up staging db and app
-    const dbStagingStackConfigMap = {
-      'db_user': { value: stagingDbUser },
-      'db_password': { value: stagingDbPassword, secret: true },
-    }
-    await pulumiA.stackUp('db-staging', { createPulumiProgram: () => mainPulumiProgram, configMap: dbStagingStackConfigMap })
-  }
-
-  const appStagingStackConfigMap = {
-    'imageUrl': { value: imageUrl },
-    'db_user': { value: stagingDbUser },
-    'db_password': { value: stagingDbPassword, secret: true },
-  }
-  await pulumiA.stackUp('app-staging', { createPulumiProgram: () => mainPulumiProgram, configMap: appStagingStackConfigMap })
-
-  // // Set up prod db and app
-  // if (createDb) {
-  //   const dbProdStackConfigMap = {
-  //     'db_user': { value: prodDbUser },
-  //     'db_password': { value: prodDbPassword, secret: true },
-  //   }
-  //   await pulumiA.stackUp('db-prod', { createPulumiProgram: () => mainPulumiProgram, configMap: dbProdStackConfigMap })
-  // }
-
-  // const appProdStackConfigMap = {
-  //   'imageUrl': { value: imageUrl },
-  //   'db_user': { value: prodDbUser },
-  //   'db_password': { value: prodDbPassword, secret: true },
-  // }
-  // await pulumiA.stackUp('app-prod', { createPulumiProgram: () => mainPulumiProgram, configMap: appProdStackConfigMap })
-
-  console.info(gradient.fruit(`\n🦄 Successfully created app!!!\n`))
+  console.info(gradient.pastel(`\n🦄 Successfully created app!!!\n`))
   console.timeEnd('Done in')
   process.exit(0)
 }
@@ -325,25 +298,28 @@ async function handleCopyPulumiFiles(options: CliOptions) {
 
 program
   .command('destroy')
-  .option('--remove-stacks', 'whether or not stacks should also be removed; defaults to true', true)
-  .option('--keep-cluster', 'don\'t remove cluster', false)
+  .option('--keep-cluster', 'don\'t remove the kubernetes cluster', false)
   .option('--debug', 'show logs', false)
   .description('destroy the entire project')
   .showHelpAfterError('(add --help for additional information)')
   .action(handleDestroy)
 
-async function handleDestroy(options: CliOptions) {
+async function handleDestroy(cliOptions: CliOptions) {
   console.info(infoColor('\nDestroying project...\n'))
   console.time('Done in')
 
-  // Make options available in other modules
-  simpleStore.setState('cliOptions', options)
+  let { destroy: configOptions } = await import(`${cwd}/ckc-config.json`)
 
-  const {
-    removeStacks,
-    keepCluster,
-    debug
-  } = options
+  if (!configOptions) {
+    throw new Error('Must provide "ckc-config.json" in your project root folder')
+  }
+
+  const { removeStacks = true } = configOptions
+  const { keepCluster, debug } = cliOptions
+  console.log('keepCluster', keepCluster)
+
+  // Make options available in other modules
+  simpleStore.setState('cliOptions', cliOptions)
 
   console.info(`debug=${debug}\n`)
 
@@ -375,38 +351,34 @@ async function handleDestroy(options: CliOptions) {
    */
 
   // Destroy prod app and db
+  await pulumiA.stackDestroy('app-prod-ingress', { remove: removeStacks })
   await pulumiA.stackDestroy('app-prod', { remove: removeStacks })
+  await pulumiA.stackDestroy('app-prod-init', { remove: removeStacks })
   await pulumiA.stackDestroy('db-prod', { remove: removeStacks })
 
   // Destroy staging app and db
+  await pulumiA.stackDestroy('app-staging-ingress', { remove: removeStacks })
   await pulumiA.stackDestroy('app-staging', { remove: removeStacks })
+  await pulumiA.stackDestroy('app-staging-init', { remove: removeStacks })
   await pulumiA.stackDestroy('db-staging', { remove: removeStacks })
 
-  // Destroy app namespaces
-  await pulumiA.stackDestroy('app-ns', { remove: removeStacks })
-
   // Destroy monitoring
+  await pulumiA.stackDestroy('grafana-dashboard', { remove: removeStacks })
   await pulumiA.stackDestroy('kube-prometheus-stack', { remove: removeStacks })
 
-  // Destroy Knative custom gateway
-  await pulumiA.stackDestroy('knative-custom-ingress', { remove: removeStacks })
+  // Destroy Dapr
+  await pulumiA.stackDestroy('dapr', { remove: removeStacks })
+
+  // Destroy Emissary
+  await pulumiA.stackDestroy('emissary', { remove: removeStacks })
 
   // Destroy cert-manager
   await pulumiA.stackDestroy('cert-manager', { remove: removeStacks })
 
-  // Destroy Istio
-  await pulumiA.stackDestroy('istio', { remove: removeStacks })
-
-  // Destroy Knative
-  // NOTE: must destroy knative-serving/knative-eventing stacks before destroying knative-operator
-  await pulumiA.stackDestroy('knative-eventing', { remove: removeStacks })
-  await pulumiA.stackDestroy('knative-serving', { remove: removeStacks })
-  await pulumiA.stackDestroy('knative-operator', { remove: removeStacks })
-
   if (!keepCluster) {
-    // Destroy cluster autoscaler
-    await pulumiA.stackDestroy('cluster-autoscaler', { remove: removeStacks })
+    await pulumiA.stackDestroy('karpenter', { remove: removeStacks })
     await pulumiA.stackDestroy('cluster', { remove: removeStacks })
+    await pulumiA.stackDestroy('identity', { remove: removeStacks })
   }
 
   console.info(gradient.fruit(`\n💥 Successfully destroyed '${projectName}' project\n`))

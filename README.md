@@ -63,7 +63,7 @@ This project is completely open-source but the resources it provisions will cost
 
 ## <a name="creating-knative-cluster"></a>Creating a Knative cluster
 
-### Pre-requisites
+### Prerequisites
 1. Install `aws` cli by following the instructions [here](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 2. Create a Pulumi AWS Typescript project
    * Follow the instructions in [Pulumi docs](https://www.pulumi.com/docs/get-started/aws/begin/) to set up Pulumi and AWS credentials - Pulumi only provides a method for generating a new project in an empty directory, but if you'd like to add Pulumi to an existing project, you can copy over the files and packages to the existing project.
@@ -85,35 +85,42 @@ Other optional installations:
 * (Optional) Install `kn` (Knative cli) - follow the instructions [here](https://knative.dev/docs/install/client/install-kn/)
 
 ### Get started
-1. Deploy your app to a Kubernetes cluster (🧘🏼‍♀️ please be patient as the entire process can take 30-60 minutes to complete - provisioning AWS EKS alone can take 20+ minutes): 
-
+1. Create ckc-config.json in your project root directory and configure it to your needs
 ```
-npx create-knative-cluster init \
-    --aws-region=<AWS region> \
-    --pulumi-organization=<Pulumi account/organization name> \
-    --custom-domain=<your-domain.com> \
-    --custom-domain-zone-id=<AWS Hosted Zone ID for your custom domain> \
-    --acme-email=<ACME email address to use for Let's Encrypt> \
-    --use-direnv=true \
+{
+  "init": {
+    "awsRegion": "us-west-1",
+    "pulumiOrganization": "example", // name of your Pulumi organization
+    "hostname": "sidetrek.com", // Hostname of your custom domain
+    "hostedZoneId": "EXAMPLE123" // AWS Route53 Hosted Zone ID for your hostname,
+    "acmeEmail": "hello@sidetrek.com", // Email to use for Let's Encrypt TLS certificate creation
+    "useDirenv": true, // Recommended to scope Kubernetes envs to this particular project directory rather than globally - see direnv setup instruction in Prerequisites section for more details
+  },
+  "destroy": {
+    "removeStacks": true,
+    "keepCluster": false
+  }
+}
 ```
-
-Example:
+2. If you're using direnv option, make sure to run `direnv allow .` before proceeding
+3. Deploy your app to a Kubernetes cluster (🧘🏼‍♀️ please be patient as the entire process can take 30-60 minutes to complete - provisioning AWS EKS alone can take 20+ minutes): 
 ```
-npx create-knative-cluster init \
-    --aws-region=us-west-1 \
-    --pulumi-organization=sidetrek \
-    --custom-domain=sidetrek.com \
-    --custom-domain-zone-id=Z02401234DADFCMEXX64X \
-    --acme-email=hello@sidetrek.com \
-    --use-direnv=true \
+npx ckc init
 ```
-
-2. Point custom domain to Istio Ingress Gateway URL (this is the entry point to the cluster)
-   1. Run `kubectl get svc -n istio-system` to get the External IP of `istio-system/istio-ingressgateway`
-   2. Add a CNAME record in Route 53: in the custom domain's Hosted zone, Create record with:
+4. Point custom domain to ingress external IP (this is the entry point to the cluster)
+   1. Run `kubectl get svc -n emissary` to get the External-IP of `emissary-ingress` Service
+   2. Add a CNAME record in Route 53 (or use Alias A record if it's a root domain - i.e. sidetrek.com). In the custom domain's Hosted zone, Create a record with:
       * Record name: *.<your-domain> (i.e. *.sidetrek.com), 
       * Record type: CNAME, and 
-      * Value: Istio ingress gateway external IP from the previous step
+      * Value: ingress external IP from the previous step
+5. (Optional) Add app related stacks - review the settings before running this to fit your use case - use it more as an example
+```
+npx ckc app
+```
+6. (Optional) Run the following cmd to copy the Pulumi setup files for local management
+```
+npx ckc copy-pulumi-files
+```
 
 If you'd like to see the whole project setup from start to finish, please see [tutorials section](#tutorials). 
 
@@ -251,3 +258,18 @@ Coming soon
 
 ### Mini course
 Coming soon
+
+## Simple load testing to verify HPA and Karpenter are working correctly
+* `-c`: 2-4x number of cores (or at least `-c 32`)
+* `-qps`: 0 to test at max qps for a short period of time (e.g.`-t 30s`) then run at ~75% of that qps (e.g. `-qps 7500` if max qps was 10k)
+* `-t`: `-t 5min`
+
+Run the load test (open up a separate terminal window and watch the pods autoscale as load increases: e.g. `kubectl get pods -n app-staging -w`):
+```
+fortio load https://your-website.com -c 24 -qps 5000 -t 60s -json result.json
+```
+
+To See the result:
+```
+fortio report -json result.json
+```

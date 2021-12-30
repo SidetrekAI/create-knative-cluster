@@ -1,22 +1,15 @@
-import * as path from 'path'
-import * as dotenv from 'dotenv'
 import * as pulumi from '@pulumi/pulumi'
 import * as awsx from '@pulumi/awsx'
-import * as knative from '../k8s-crds/knative-serving'
-import { KnativeVirtualService } from '../component-resources'
+import * as k8s from '@pulumi/kubernetes'
+import { AppAutoscaleStep, AppBuildStep, AppDeployStep, K8sContainerEnvVar } from '../component-resources/app'
 
 export interface AppStackArgs {
-  projectRootPath: string,
-  project: string,
-  stackEnv: string,
-  customDomain: string,
+  imageName: string,
+  imageContext: string,
+  imageDockerfile: string,
+  appSvcName: string,
   appNamespaceName: string,
-  dbUser?: string,
-  dbPassword?: pulumi.Output<string>,
-  dbName?: pulumi.Output<string>,
-  dbEndpoint?: pulumi.Output<string>,
-  dbPort?: pulumi.Output<number>,
-  knativeHttpsIngressGatewayName: string,
+  containerEnvs?: K8sContainerEnvVar[],
 }
 
 export class AppStack extends pulumi.ComponentResource {
@@ -24,95 +17,32 @@ export class AppStack extends pulumi.ComponentResource {
     super('custom:stack:AppStack', name, {}, opts)
 
     const {
-      projectRootPath,
-      project,
-      stackEnv,
-      customDomain,
+      imageName,
+      imageContext,
+      imageDockerfile,
+      appSvcName,
       appNamespaceName,
-      dbUser,
-      dbPassword,
-      dbName,
-      dbEndpoint,
-      dbPort,
-      knativeHttpsIngressGatewayName,
+      containerEnvs,
     } = args
 
-    const isProduction = stackEnv === 'prod'
-
-    /**
-     * Build and push images to ECR
-     */
-    const appImage = awsx.ecr.buildAndPushImage(`${project}-app-image`, {
-      context: projectRootPath,
-      dockerfile: './Dockerfile.prod',
-    })
-
-    // Deploy Knative Service
-    const appKSvcName = `app-ksvc`
-    const appKSvc = new knative.serving.v1.Service(appKSvcName, {
-      metadata: {
-        namespace: appNamespaceName,
-        name: appKSvcName,
-        labels: {
-          app: project,
-          'networking.knative.dev/visibility': 'cluster-local' // make this service accessible only within the cluster
-        },
-      },
-      spec: {
-        template: {
-          metadata: {
-            annotations: {
-              'autoscaling.knative.dev/initialScale': '1',
-              'autoscaling.knative.dev/minScale': '1', // prevent scaledown to zero
-            },
-          },
-          spec: {
-            containers: [{
-              image: appImage.image(),
-              env: [
-                { name: 'NODE_ENV', value: isProduction ? 'production' : 'staging' },
-                ...(dbUser ? [{ name: 'DB_USER', value: dbUser }] : []),
-                ...(dbPassword ? [{ name: 'DB_PASSWORD', value: dbPassword }] : []),
-                ...(dbName ? [{ name: 'DB_NAME', value: dbName }] : []),
-                ...(dbEndpoint ? [{ name: 'DB_ENDPOINT', value: dbEndpoint }] : []),
-                ...(dbPort ? [{ name: 'DB_PORT', value: pulumi.interpolate`${dbPort.toString()}` }] : []), // Knative can't seem to parse number type in env
-                // {
-                //   name: 'DATABASE_URL',
-                //   value: pulumi.interpolate`postgresql://${dbUser}:${dbPassword}@${dbEndpoint}:${dbPort}/${dbName}?schema=public`
-                // },
-              ],
-            }]
-          }
-        },
-        traffic: [
-          {
-            latestRevision: true,
-            percent: 100,
-          },
-          // {
-          //   revisionName: 'app-ksvc-00004',
-          //   percent: 100,
-          // },
-        ]
-      },
+    // Build app - name is used as ECR repo name
+    const { imageUrl } = new AppBuildStep(imageName, {
+      context: imageContext,
+      dockerfile: imageDockerfile,
     }, { parent: this })
 
-    /**
-     * Handle ingress gateway routing to services using Istio Virtual Service
-     */
-    const appKvsName = 'app-entry-route'
-    const appKvs = new KnativeVirtualService(appKvsName, {
-      useKnativeRouting: true,
+    // Deploy app svc
+    const appDeployStep = new AppDeployStep(appSvcName, {
       namespace: appNamespaceName,
-      gateways: [`${knativeHttpsIngressGatewayName}.knative-serving.svc.cluster.local`],
-      hosts: isProduction ? [`*.${customDomain}`] : [`${appNamespaceName}.${customDomain}`],
-      routes: [
-        {
-          uri: '/',
-          rewriteUri: '/',
-          serviceHostname: `${appKSvcName}.${appNamespaceName}.svc.cluster.local`,
-        },
-      ]
+      svcName: appSvcName,
+      image: imageUrl,
+      containerPort: 4000, // GOTCHA: containerPort must match the port of the server running in the container
+      ...containerEnvs ? { containerEnvs } : {},
+    }, { parent: this })
+
+    const appAutoscaleStep = new AppAutoscaleStep(appSvcName, {
+      targetDeploymentName: appSvcName,
+      targetDeploymentNamespace: appNamespaceName,
     }, { parent: this })
 
     this.registerOutputs()
